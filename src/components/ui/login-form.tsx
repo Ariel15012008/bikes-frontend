@@ -16,8 +16,8 @@ export function LoginForm({
   ...props
 }: React.ComponentPropsWithoutRef<"form">) {
   const [formData, setFormData] = useState({
-    email: "gabriel@mail.com",
-    password: "12345",
+    email: "",
+    senha: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -36,11 +36,11 @@ export function LoginForm({
     try {
       const response = await api.post("/auth/login", {
         email: formData.email,
-        senha: formData.password,
+        senha: formData.senha,
       });
 
       if (response.status === 200) {
-        router.push("/pages/home");
+        router.push("/");
       }
     } catch (error: any) {
       toast.error("Erro ao fazer login", {
@@ -100,10 +100,10 @@ export function LoginForm({
           <div className="relative">
             <Input
               id="password"
-              name="password"
+              name="senha"
               type={showPassword ? "text" : "password"}
               placeholder="Digite sua senha"
-              value={formData.password}
+              value={formData.senha}
               onChange={handleChange}
               className="bg-[#f9f9f9] border border-gray-300 focus:border-[#09bc8a] focus:ring-0 transition-all text-base h-11 pr-12"
               required
