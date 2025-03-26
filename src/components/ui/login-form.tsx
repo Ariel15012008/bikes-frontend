@@ -138,7 +138,7 @@ export function LoginForm({
       <div className="text-center text-base">
         Não tem uma conta?{" "}
         <a
-          href="#"
+          href="/register"
           className="text-[#2b866c] hover:text-[#0c1b33] font-medium underline underline-offset-4"
         >
           Cadastre-se
