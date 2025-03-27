@@ -17,19 +17,17 @@ import { motion, AnimatePresence } from "framer-motion"
 
 const RegisterForm = () => {
   const [formData, setFormData] = useState({
-    nome: "",
+    nome_completo: "",
     email: "",
-    telefone: "",
+    telefone_celular: "",
     data_nascimento: "",
     cpf_cnpj: "",
     fantasia: "",
     regime: "",
-    senha: "",
-    confirmar_senha: ""
+    senha: ""
   })
 
   const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [personType, setPersonType] = useState("fisica")
@@ -79,38 +77,45 @@ const RegisterForm = () => {
     return value
   }
 
+  const cleanNumber = (value: string): string => value.replace(/\D/g, "")
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setMessage(null)
 
-    if (formData.senha !== formData.confirmar_senha) {
-      setMessage("As senhas não coincidem")
-      setIsLoading(false)
-      return
-    }
-
     try {
       const dataToSend = {
-        ...formData,
-        tipo: personType,
+        pessoa: {
+          nome_completo: formData.nome_completo,
+          fantasia: formData.fantasia,
+          cpf_cnpj: cleanNumber(formData.cpf_cnpj),
+          email: formData.email,
+          telefone_celular: cleanNumber(formData.telefone_celular),
+          data_nascimento: formData.data_nascimento,
+          regime: formData.regime,
+          tipo_pessoa: personType
+        },
+        usuario: {
+          email: formData.email,
+          senha: formData.senha
+        }
       }
 
       const response = await api.post("/users/", dataToSend)
       console.log("Resposta do servidor:", response.data)
 
       if (response.status === 201 || response.status === 200) {
-        router.push("/pages/home")
+        router.push("/")
         setFormData({
-          nome: "",
+          nome_completo: "",
           email: "",
-          telefone: "",
+          telefone_celular: "",
           data_nascimento: "",
           cpf_cnpj: "",
           fantasia: "",
           regime: "",
-          senha: "",
-          confirmar_senha: ""
+          senha: ""
         })
       }
     } catch (error: any) {
@@ -127,7 +132,7 @@ const RegisterForm = () => {
 
     if (name === "cpf_cnpj") {
       formattedValue = personType === "fisica" ? formatCPF(value) : formatCNPJ(value)
-    } else if (name === "telefone") {
+    } else if (name === "telefone_celular") {
       formattedValue = formatPhone(value)
     }
 
@@ -167,7 +172,7 @@ const RegisterForm = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-500">Nome</p>
-                <p className="font-medium">{formData.nome}</p>
+                <p className="font-medium">{formData.nome_completo}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">E-mail</p>
@@ -175,7 +180,7 @@ const RegisterForm = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Telefone</p>
-                <p className="font-medium">{formData.telefone}</p>
+                <p className="font-medium">{formData.telefone_celular}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">{personType === "fisica" ? "CPF" : "CNPJ"}</p>
@@ -200,18 +205,11 @@ const RegisterForm = () => {
             </div>
           </div>
 
-          {personType === "fisica" && (
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div>
-                <p className="text-sm text-gray-500">Senha</p>
-                <p className="font-medium">••••••••</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Confirmar Senha</p>
-                <p className="font-medium">••••••••</p>
-              </div>
-            </div>
-          )}
+          {/* Campo de senha para ambos os tipos */}
+          <div className="mt-4">
+            <p className="text-sm text-gray-500">Senha</p>
+            <p className="font-medium">••••••••</p>
+          </div>
 
           <div className="mt-4">
             <label className="flex items-start">
@@ -242,9 +240,9 @@ const RegisterForm = () => {
               </Label>
               <Input
                 id="nome"
-                name="nome"
+                name="nome_completo"
                 type="text"
-                value={formData.nome}
+                value={formData.nome_completo}
                 onChange={handleChange}
                 placeholder="Digite seu nome completo"
                 required
@@ -268,14 +266,14 @@ const RegisterForm = () => {
               />
             </div>
             <div className="flex-1">
-              <Label htmlFor="telefone" className="text-gray-700 text-base">
+              <Label htmlFor="telefone_celular" className="text-gray-700 text-base">
                 Telefone <span className="text-red-500">*</span>
               </Label>
               <Input
-                id="telefone"
-                name="telefone"
+                id="telefone_celular"
+                name="telefone_celular"
                 type="text"
-                value={formData.telefone}
+                value={formData.telefone_celular}
                 onChange={handleChange}
                 placeholder="(XX) XXXXX-XXXX"
                 maxLength={15}
@@ -346,58 +344,31 @@ const RegisterForm = () => {
             </div>
           )}
 
-          {personType === "fisica" && (
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <Label htmlFor="senha" className="text-gray-700 text-base">
-                  Senha <span className="text-red-500">*</span>
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="senha"
-                    name="senha"
-                    type={showPassword ? "text" : "password"}
-                    value={formData.senha}
-                    onChange={handleChange}
-                    placeholder="Digite sua senha"
-                    required
-                    className="pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                  >
-                    {showPassword ? <IoEyeOffSharp size={20} /> : <IoEyeSharp size={20} />}
-                  </button>
-                </div>
-              </div>
-              <div className="flex-1">
-                <Label htmlFor="confirmar_senha" className="text-gray-700 text-base">
-                  Confirmar Senha <span className="text-red-500">*</span>
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="confirmar_senha"
-                    name="confirmar_senha"
-                    type={showConfirmPassword ? "text" : "password"}
-                    value={formData.confirmar_senha}
-                    onChange={handleChange}
-                    placeholder="Confirme sua senha"
-                    required
-                    className="pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                  >
-                    {showConfirmPassword ? <IoEyeOffSharp size={20} /> : <IoEyeSharp size={20} />}
-                  </button>
-                </div>
-              </div>
+          {/* Campo de senha para ambos os tipos */}
+          <div className="flex-1">
+            <Label htmlFor="senha" className="text-gray-700 text-base">
+              Senha <span className="text-red-500">*</span>
+            </Label>
+            <div className="relative">
+              <Input
+                id="senha"
+                name="senha"
+                type={showPassword ? "text" : "password"}
+                value={formData.senha}
+                onChange={handleChange}
+                placeholder="Digite sua senha"
+                required
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                {showPassword ? <IoEyeOffSharp size={20} /> : <IoEyeSharp size={20} />}
+              </button>
             </div>
-          )}
+          </div>
 
           <div className="mt-4">
             <label className="inline-flex items-center">
@@ -533,7 +504,6 @@ export default function RegisterPage() {
 
   return (
     <>
-      {/* Fundo para mobile (sem animação) */}
       <div className="fixed inset-0 -z-10 lg:hidden">
         <img
           src="/img/fundo-cadastro.jpg"
@@ -543,9 +513,7 @@ export default function RegisterPage() {
         <div className="absolute inset-0 bg-[#09bc8a]/50"></div>
       </div>
 
-      {/* Layout principal */}
       <div className="grid min-h-screen lg:grid-cols-[1fr_1.2fr]">
-        {/* Coluna da Imagem (com animação) */}
         <div className="relative hidden lg:block order-first overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div
@@ -566,7 +534,6 @@ export default function RegisterPage() {
           </AnimatePresence>
         </div>
 
-        {/* Coluna do Formulário (com animação) */}
         <div className="flex flex-col gap-6 p-4 md:p-6 lg:p-8 max-[1024px]:bg-white max-[1024px]:rounded-xl max-[1024px]:shadow-xl max-[1024px]:mx-auto max-[1024px]:my-4 max-[1024px]:max-w-2xl order-last">
           <AnimatePresence mode="wait">
             <motion.div
