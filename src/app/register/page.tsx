@@ -1,19 +1,23 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { useRouter, usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { FaArrowRightToBracket, FaArrowRight, FaArrowLeft } from "react-icons/fa6"
-import { FcGoogle } from "react-icons/fc"
-import { FaFacebook } from "react-icons/fa"
-import { IoEyeSharp, IoEyeOffSharp } from "react-icons/io5"
-import { Toaster } from "@/components/ui/sonner"
-import api from "@/app/utils/axiosInstance"
-import Link from "next/link"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  FaArrowRightToBracket,
+  FaArrowRight,
+  FaArrowLeft,
+} from "react-icons/fa6";
+import { FcGoogle } from "react-icons/fc";
+import { FaFacebook } from "react-icons/fa";
+import { IoEyeSharp, IoEyeOffSharp } from "react-icons/io5";
+import { Toaster } from "@/components/ui/sonner";
+import api from "@/app/utils/axiosInstance";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 
 const RegisterForm = () => {
   const [formData, setFormData] = useState({
@@ -24,65 +28,65 @@ const RegisterForm = () => {
     cpf_cnpj: "",
     fantasia: "",
     regime: "",
-    senha: ""
-  })
+    senha: "",
+  });
 
-  const [showPassword, setShowPassword] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [personType, setPersonType] = useState("fisica")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [termsAccepted, setTermsAccepted] = useState(false)
-  const [angle, setAngle] = useState(0)
-  const totalPages = personType === "fisica" ? 2 : 2
+  const [showPassword, setShowPassword] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [personType, setPersonType] = useState("fisica");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [angle, setAngle] = useState(0);
+  const totalPages = personType === "fisica" ? 2 : 2;
 
-  const router = useRouter()
+  const router = useRouter();
 
   useEffect(() => {
     const animationFrame = requestAnimationFrame(function animate() {
-      setAngle(prev => (prev + 0.5) % 360)
-      requestAnimationFrame(animate)
-    })
-    return () => cancelAnimationFrame(animationFrame)
-  }, [])
+      setAngle((prev) => (prev + 0.5) % 360);
+      requestAnimationFrame(animate);
+    });
+    return () => cancelAnimationFrame(animationFrame);
+  }, []);
 
   const formatCPF = (value: string): string => {
-    const numbers = value.replace(/\D/g, "")
+    const numbers = value.replace(/\D/g, "");
     if (numbers.length <= 11) {
       return numbers
         .replace(/(\d{3})(\d)/, "$1.$2")
         .replace(/(\d{3})(\d)/, "$1.$2")
-        .replace(/(\d{3})(\d{1,2})$/, "$1-$2")
+        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
     }
-    return value
-  }
+    return value;
+  };
 
   const formatCNPJ = (value: string): string => {
-    const numbers = value.replace(/\D/g, "")
+    const numbers = value.replace(/\D/g, "");
     if (numbers.length <= 14) {
       return numbers
         .replace(/(\d{2})(\d)/, "$1.$2")
         .replace(/(\d{3})(\d)/, "$1.$2")
         .replace(/(\d{3})(\d)/, "$1/$2")
-        .replace(/(\d{4})(\d{1,2})$/, "$1-$2")
+        .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
     }
-    return value
-  }
+    return value;
+  };
 
   const formatPhone = (value: string): string => {
-    const numbers = value.replace(/\D/g, "")
+    const numbers = value.replace(/\D/g, "");
     if (numbers.length === 11) {
-      return numbers.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3")
+      return numbers.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
     }
-    return value
-  }
+    return value;
+  };
 
-  const cleanNumber = (value: string): string => value.replace(/\D/g, "")
+  const cleanNumber = (value: string): string => value.replace(/\D/g, "");
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setMessage(null)
+    e.preventDefault();
+    setIsLoading(true);
+    setMessage(null);
 
     try {
       const dataToSend = {
@@ -94,19 +98,19 @@ const RegisterForm = () => {
           telefone_celular: cleanNumber(formData.telefone_celular),
           data_nascimento: formData.data_nascimento,
           regime: formData.regime,
-          tipo_pessoa: personType
+          tipo_pessoa: personType,
         },
         usuario: {
           email: formData.email,
-          senha: formData.senha
-        }
-      }
+          senha: formData.senha,
+        },
+      };
 
-      const response = await api.post("/users/", dataToSend)
-      console.log("Resposta do servidor:", response.data)
+      const response = await api.post("/users/", dataToSend);
+      console.log("Resposta do servidor:", response.data);
 
       if (response.status === 201 || response.status === 200) {
-        router.push("/")
+        router.push("/");
         setFormData({
           nome_completo: "",
           email: "",
@@ -115,59 +119,61 @@ const RegisterForm = () => {
           cpf_cnpj: "",
           fantasia: "",
           regime: "",
-          senha: ""
-        })
+          senha: "",
+        });
       }
     } catch (error: any) {
-      console.error("Erro na requisição:", error)
-      setMessage(error.response?.data?.message || "Erro ao conectar-se ao servidor.")
+      console.error("Erro na requisição:", error);
+      setMessage(
+        error.response?.data?.message || "Erro ao conectar-se ao servidor."
+      );
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    let formattedValue = value
+    const { name, value } = e.target;
+    let formattedValue = value;
 
     if (name === "cpf_cnpj") {
-      formattedValue = personType === "fisica" ? formatCPF(value) : formatCNPJ(value)
+      formattedValue =
+        personType === "fisica" ? formatCPF(value) : formatCNPJ(value);
     } else if (name === "telefone_celular") {
-      formattedValue = formatPhone(value)
+      formattedValue = formatPhone(value);
     }
 
-    setFormData({ ...formData, [name]: formattedValue })
-    setMessage(null)
-  }
+    setFormData({ ...formData, [name]: formattedValue });
+    setMessage(null);
+  };
 
   const handlePersonTypeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPersonType(e.target.value)
+    setPersonType(e.target.value);
     setFormData({
       ...formData,
       cpf_cnpj: "",
       fantasia: "",
       regime: "",
-    })
-  }
+    });
+  };
 
   const nextPage = () => {
     if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1)
+      setCurrentPage(currentPage + 1);
     }
-  }
+  };
 
   const prevPage = () => {
     if (currentPage > 1) {
-      setCurrentPage(currentPage - 1)
+      setCurrentPage(currentPage - 1);
     }
-  }
+  };
 
   const renderFormFields = () => {
     if (currentPage === 2) {
       return (
         <div className="space-y-4">
           <h3 className="text-lg font-medium">Confirmação de Dados</h3>
-          
           <div className="bg-gray-50 p-4 rounded-md">
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -183,11 +189,15 @@ const RegisterForm = () => {
                 <p className="font-medium">{formData.telefone_celular}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">{personType === "fisica" ? "CPF" : "CNPJ"}</p>
+                <p className="text-sm text-gray-500">
+                  {personType === "fisica" ? "CPF" : "CNPJ"}
+                </p>
                 <p className="font-medium">{formData.cpf_cnpj}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">{personType === "fisica" ? "Data Nasc." : "Data Fundação"}</p>
+                <p className="text-sm text-gray-500">
+                  {personType === "fisica" ? "Data Nasc." : "Data Fundação"}
+                </p>
                 <p className="font-medium">{formData.data_nascimento}</p>
               </div>
               {personType === "juridica" && (
@@ -221,13 +231,19 @@ const RegisterForm = () => {
                 required
               />
               <span className="ml-2 text-sm">
-                Concordo com os <a href="#" className="text-[#09bc8a]">Termos de Uso</a> e{' '}
-                <a href="#" className="text-[#09bc8a]">Política de Privacidade</a>
+                Concordo com os{" "}
+                <a href="#" className="text-[#09bc8a]">
+                  Termos de Uso
+                </a>{" "}
+                e{" "}
+                <a href="#" className="text-[#09bc8a]">
+                  Política de Privacidade
+                </a>
               </span>
             </label>
           </div>
         </div>
-      )
+      );
     }
 
     return (
@@ -236,7 +252,8 @@ const RegisterForm = () => {
           <div className="flex gap-4">
             <div className="flex-1">
               <Label htmlFor="nome" className="text-gray-700 text-base">
-                Nome {personType === "juridica" ? "da Empresa" : ""} <span className="text-red-500">*</span>
+                Nome {personType === "juridica" ? "da Empresa" : ""}{" "}
+                <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="nome"
@@ -266,7 +283,9 @@ const RegisterForm = () => {
               />
             </div>
             <div className="flex-1">
-              <Label htmlFor="telefone_celular" className="text-gray-700 text-base">
+              <Label
+                htmlFor="telefone_celular"
+                className="text-gray-700 text-base">
                 Telefone <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -285,7 +304,8 @@ const RegisterForm = () => {
           <div className="flex gap-4">
             <div className="flex-1">
               <Label htmlFor="cpf_cnpj" className="text-gray-700 text-base">
-                {personType === "fisica" ? "CPF" : "CNPJ"} <span className="text-red-500">*</span>
+                {personType === "fisica" ? "CPF" : "CNPJ"}{" "}
+                <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="cpf_cnpj"
@@ -293,14 +313,21 @@ const RegisterForm = () => {
                 type="text"
                 value={formData.cpf_cnpj}
                 onChange={handleChange}
-                placeholder={personType === "fisica" ? "Digite seu CPF" : "Digite o CNPJ"}
+                placeholder={
+                  personType === "fisica" ? "Digite seu CPF" : "Digite o CNPJ"
+                }
                 maxLength={personType === "fisica" ? 14 : 18}
                 required
               />
             </div>
             <div className="flex-1">
-              <Label htmlFor="data_nascimento" className="text-gray-700 text-base">
-                {personType === "fisica" ? "Data de Nascimento" : "Data de Fundação"} <span className="text-red-500">*</span>
+              <Label
+                htmlFor="data_nascimento"
+                className="text-gray-700 text-base">
+                {personType === "fisica"
+                  ? "Data de Nascimento"
+                  : "Data de Fundação"}{" "}
+                <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="data_nascimento"
@@ -363,9 +390,12 @@ const RegisterForm = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-              >
-                {showPassword ? <IoEyeOffSharp size={20} /> : <IoEyeSharp size={20} />}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                {showPassword ? (
+                  <IoEyeOffSharp size={20} />
+                ) : (
+                  <IoEyeSharp size={20} />
+                )}
               </button>
             </div>
           </div>
@@ -396,8 +426,8 @@ const RegisterForm = () => {
           </div>
         </div>
       </>
-    )
-  }
+    );
+  };
 
   const renderNavigationButtons = () => {
     return (
@@ -406,8 +436,7 @@ const RegisterForm = () => {
           <Button
             type="button"
             onClick={prevPage}
-            className="flex items-center gap-2 bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white hover:opacity-90"
-          >
+            className="flex items-center gap-2 bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white hover:opacity-90">
             <FaArrowLeft /> Voltar
           </Button>
         )}
@@ -416,16 +445,14 @@ const RegisterForm = () => {
           <Button
             type="button"
             onClick={nextPage}
-            className="flex items-center gap-2 ml-auto bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white hover:opacity-90 "
-          >
+            className="flex items-center gap-2 ml-auto bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white hover:opacity-90 ">
             Próximo <FaArrowRight />
           </Button>
         ) : (
           <Button
             type="submit"
             className="flex items-center gap-2 ml-auto bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white hover:opacity-90"
-            disabled={isLoading || !termsAccepted}
-          >
+            disabled={isLoading || !termsAccepted}>
             {isLoading ? (
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
             ) : (
@@ -436,40 +463,38 @@ const RegisterForm = () => {
           </Button>
         )}
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <div className="w-full max-w-4/5 relative rounded-lg">
       <div className="absolute -inset-[3px] rounded-lg overflow-hidden">
-        <div 
+        <div
           className="absolute inset-0 rounded-lg"
           style={{
             background: `conic-gradient(from ${angle}deg, rgba(0,0,0,0) 20%, #09bc8a 50%, rgba(0,0,0,0) 80%)`,
             zIndex: 0,
-            padding: '3px'
+            padding: "3px",
           }}
         />
         <div className="absolute inset-0 rounded-lg border-2 border-gray-200 z-0" />
       </div>
-      
+
       <div className="relative bg-white rounded-lg p-6 z-10 border border-gray-200">
         <h2 className="text-2xl font-bold text-center mb-6">Criar Conta</h2>
-        
+
         {personType === "fisica" && currentPage === 1 && (
           <>
             <div className="mb-6">
-              <Button 
+              <Button
                 type="button"
                 variant="outline"
-                className="w-full flex items-center justify-center gap-2 mb-3"
-              >
+                className="w-full flex items-center justify-center gap-2 mb-3">
                 <FcGoogle /> Continuar com Google
               </Button>
-              <Button 
+              <Button
                 type="button"
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700"
-              >
+                className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700">
                 <FaFacebook /> Continuar com Facebook
               </Button>
             </div>
@@ -484,23 +509,22 @@ const RegisterForm = () => {
 
         {currentPage === 1 && (
           <p className="mt-6 text-center text-base font-medium text-black">
-            Já tem uma conta?{' '}
+            Já tem uma conta?{" "}
             <Link
               href="/login"
               className="text-[#09bc8a] hover:underline hover:text-[#000000] underline decoration-solid"
-              scroll={false}
-            >
+              scroll={false}>
               Faça login
             </Link>
           </p>
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
 export default function RegisterPage() {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
     <>
@@ -518,12 +542,14 @@ export default function RegisterPage() {
           <AnimatePresence mode="wait">
             <motion.div
               key={pathname}
-              initial={{ x: pathname === "/login" ? "-100%" : "100%", opacity: 0 }}
+              initial={{
+                x: pathname === "/login" ? "-100%" : "100%",
+                opacity: 0,
+              }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: pathname === "/login" ? "100%" : "-100%", opacity: 0 }}
               transition={{ duration: 0.7, ease: "easeInOut" }}
-              className="absolute inset-0"
-            >
+              className="absolute inset-0">
               <img
                 src="/img/fundo-cadastro.jpg"
                 alt="Imagem de fundo"
@@ -538,12 +564,14 @@ export default function RegisterPage() {
           <AnimatePresence mode="wait">
             <motion.div
               key={pathname}
-              initial={{ x: pathname === "/login" ? "100%" : "-100%", opacity: 0 }}
+              initial={{
+                x: pathname === "/login" ? "100%" : "-100%",
+                opacity: 0,
+              }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: pathname === "/login" ? "-100%" : "100%", opacity: 0 }}
               transition={{ duration: 0.7, ease: "easeInOut" }}
-              className="flex flex-1 items-center justify-center p-2"
-            >
+              className="flex flex-1 items-center justify-center p-2">
               <RegisterForm />
             </motion.div>
           </AnimatePresence>
@@ -557,7 +585,8 @@ export default function RegisterPage() {
             classNames: {
               title: "font-bold text-sm max-[600px]:text-xs",
               description: "text-sm max-[600px]:text-xs",
-              toast: "ml-auto max-sm:mr-8 flex items-center p-4 rounded-md shadow-lg gap-4 max-w-[320px] max-sm:max-w-[290px]",
+              toast:
+                "ml-auto max-sm:mr-8 flex items-center p-4 rounded-md shadow-lg gap-4 max-w-[320px] max-sm:max-w-[290px]",
               error: "bg-red-400 text-white",
               success: "bg-green-400 text-white",
               warning: "bg-yellow-400 text-black",
@@ -567,5 +596,5 @@ export default function RegisterPage() {
         />
       </div>
     </>
-  )
+  );
 }
