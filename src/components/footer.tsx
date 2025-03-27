@@ -1,77 +1,155 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { FaArrowRightToBracket } from 'react-icons/fa6';
+import * as React from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { FaArrowRightToBracket } from "react-icons/fa6";
 
-const Footer = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+export function Footer() {
+  const [isLoading, setIsLoading] = React.useState(false);
 
   return (
-    <footer className="bg-gray-100 py-8 w-full shadow-md">
-      <div className="container mx-auto flex flex-col items-center text-center md:text-left md:items-start md:flex-row md:justify-between px-6 md:px-16">
-        
-        {/* Logo (vai para o topo no mobile) */}
-        <div className="order-1 md:order-2 flex flex-col items-center md:items-start">
-          <img src="/img/logo.png" alt="Logo" className="w-28 md:w-36 mb-4" />
-        </div>
+    <footer className="w-full bg-white text-gray-800 py-10 px-4 shadow-inner">
+      {/* LAYOUT RESPONSIVO COMPLETO */}
+      <div className="max-w-7xl mx-auto">
+        {/* TELAS GRANDES E MÉDIAS */}
+        <div className="hidden md:flex flex-col md:flex-row md:justify-between md:items-start gap-10">
+          {/* COLUNA 1 - LINKS */}
+          <div className="w-full md:w-1/3 flex justify-center md:justify-start">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm text-center md:text-left">
+              <a href="#" className="hover:text-[#09BC8A]">Política de troca</a>
+              <a href="#" className="hover:text-[#09BC8A]">Crie sua conta</a>
+              <a href="#" className="hover:text-[#09BC8A]">Perguntas frequentes</a>
+              <a href="#" className="hover:text-[#09BC8A]">Trabalhe conosco</a>
+              <a href="#" className="hover:text-[#09BC8A]">Política de privacidade</a>
+              <a href="#" className="hover:text-[#09BC8A]">Anuncie na Bikes.com.br</a>
+            </div>
+          </div>
 
-        {/* Links (ficam abaixo da logo no mobile) */}
-        <div className="order-2 md:order-1 flex flex-wrap justify-center gap-8 mt-4 md:mt-0">
-          <ul className="space-y-2 text-gray-700 text-sm md:text-base">
-            <li><a href="#about" className="hover:text-green-500">Política de troca</a></li>
-            <li><a href="#services" className="hover:text-green-500">Perguntas frequentes</a></li>
-            <li><a href="#contact" className="hover:text-green-500">Política de privacidade</a></li>
-          </ul>
-          <ul className="space-y-2 text-gray-700 text-sm md:text-base">
-            <li><a href="#faq" className="hover:text-green-500">Crie sua conta</a></li>
-            <li><a href="#faq" className="hover:text-green-500">Trabalhe conosco</a></li>
-            <li><a href="#faq" className="hover:text-green-500">Anuncie na Bikes.com.br</a></li>
-          </ul>
-        </div>
+          {/* COLUNA 2 - LOGO + ÍCONES */}
+          <div className="w-full md:w-1/3 flex flex-col items-center">
+            <img src="/img/logo.png" alt="Logo" className="w-32 mb-4" />
+            <div className="flex gap-3">
+              <a href="https://wa.me/" target="_blank" aria-label="WhatsApp" rel="noreferrer">
+                <div className="bg-[#0C1B33] rounded-full">
+                  <img src="/img/whatsapp-footer.png" className="h-7 w-7" alt="WhatsApp" />
+                </div>
+              </a>
+              <a href="https://instagram.com/" target="_blank" aria-label="Instagram" rel="noreferrer">
+                <div className="bg-[#0C1B33] rounded-full">
+                  <img src="/img/instagram-footer.png" className="h-7 w-7" alt="Instagram" />
+                </div>
+              </a>
+              <a href="https://facebook.com/" target="_blank" aria-label="Facebook" rel="noreferrer">
+                <div className="bg-[#0C1B33] rounded-full">
+                  <img src="/img/facebook-footer.png" className="h-7 w-7" alt="Facebook" />
+                </div>
+              </a>
+            </div>
+          </div>
 
-        {/* Ícones sociais (abaixo dos links no mobile) */}
-        <div className="order-3 flex justify-center space-x-4 mt-6 md:mt-0">
-          <a href="https://wa.me/" target="_blank" rel="noopener noreferrer">
-            <img src="/img/whatsapp-footer.png" alt="WhatsApp" className="h-6 w-6 md:h-8 md:w-8 hover:scale-110 transition" />
-          </a>
-          <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer">
-            <img src="/img/instagram-footer.png" alt="Instagram" className="h-6 w-6 md:h-8 md:w-8 hover:scale-110 transition" />
-          </a>
-          <a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer">
-            <img src="/img/facebook-footer.png" alt="Facebook" className="h-6 w-6 md:h-8 md:w-8 hover:scale-110 transition" />
-          </a>
-        </div>
-
-        {/* Newsletter (vai para o final no mobile) */}
-        <div className="order-4 w-full max-w-sm mt-6 md:mt-0">
-          <label htmlFor="email" className="block text-lg font-semibold text-gray-900">Assine nossa Newsletter</label>
-          <div className="flex flex-col md:flex-row items-center space-y-3 md:space-y-0 md:space-x-2 mt-2">
-            <Input
-              type="email"
-              id="email"
-              placeholder="Digite seu e-mail"
-              className="border border-green-500 rounded-md px-3 py-2 w-full text-sm md:text-base"
-              required
-            />
-            <Button
-              disabled={isLoading}
-              className="bg-gradient-to-r from-green-500 to-blue-900 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm md:text-base"
-            >
-              {isLoading ? <span className="animate-spin">🔄</span> : <>Enviar <FaArrowRightToBracket /></>}
-            </Button>
+          {/* COLUNA 3 - NEWSLETTER */}
+          <div className="w-full md:w-1/3 text-center md:text-right">
+            <label htmlFor="email" className="block text-sm font-medium mb-2">
+              Assine nossa Newsletter
+            </label>
+            <div className="flex flex-col items-center md:items-end gap-3">
+              <Input
+                type="email"
+                id="email"
+                placeholder="E-mail"
+                className="w-64 border-2 border-[#09BC8A] rounded-md px-3 py-2 text-sm"
+                required
+              />
+              <Button
+                disabled={isLoading}
+                className="bg-gradient-to-r from-[#09BC8A] to-[#0C1B33] text-white px-6 py-2 rounded-full text-sm"
+              >
+                {isLoading ? (
+                  "..."
+                ) : (
+                  <>
+                    Assinar <FaArrowRightToBracket className="ml-2" />
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
 
+        {/* TELAS PEQUENAS */}
+        <div className="flex flex-col gap-10 md:hidden">
+          {/* LOGO */}
+          <div className="flex justify-center">
+            <img src="/img/logo.png" alt="Logo" className="w-32 mb-4" />
+          </div>
+
+          {/* LINKS EM DUAS COLUNAS */}
+          <div className="w-full flex justify-center">
+            <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm text-center">
+              <a href="#" className="hover:text-[#09BC8A]">Política de troca</a>
+              <a href="#" className="hover:text-[#09BC8A]">Crie sua conta</a>
+              <a href="#" className="hover:text-[#09BC8A]">Perguntas frequentes</a>
+              <a href="#" className="hover:text-[#09BC8A]">Trabalhe conosco</a>
+              <a href="#" className="hover:text-[#09BC8A]">Política de privacidade</a>
+              <a href="#" className="hover:text-[#09BC8A]">Anuncie na Bikes.com.br</a>
+            </div>
+          </div>
+
+          {/* ÍCONES SOCIAIS */}
+          <div className="flex justify-center gap-3">
+            <a href="https://wa.me/" target="_blank" aria-label="WhatsApp" rel="noreferrer">
+              <div className="bg-[#0C1B33] rounded-full">
+                <img src="/img/whatsapp-footer.png" className="h-7 w-7" alt="WhatsApp" />
+              </div>
+            </a>
+            <a href="https://instagram.com/" target="_blank" aria-label="Instagram" rel="noreferrer">
+              <div className="bg-[#0C1B33] rounded-full">
+                <img src="/img/instagram-footer.png" className="h-7 w-7" alt="Instagram" />
+              </div>
+            </a>
+            <a href="https://facebook.com/" target="_blank" aria-label="Facebook" rel="noreferrer">
+              <div className="bg-[#0C1B33] rounded-full">
+                <img src="/img/facebook-footer.png" className="h-7 w-7" alt="Facebook" />
+              </div>
+            </a>
+          </div>
+
+          {/* NEWSLETTER */}
+          <div className="text-center">
+            <label htmlFor="email" className="block text-sm font-medium mb-2">
+              Assine nossa Newsletter
+            </label>
+            <div className="flex flex-col items-center gap-3">
+              <Input
+                type="email"
+                id="email"
+                placeholder="E-mail"
+                className="w-64 border-2 border-[#09BC8A] rounded-md px-3 py-2 text-sm"
+                required
+              />
+              <Button
+                disabled={isLoading}
+                className="bg-gradient-to-r from-[#09BC8A] to-[#0C1B33] text-white px-6 py-2 rounded-full text-sm"
+              >
+                {isLoading ? (
+                  "..."
+                ) : (
+                  <>
+                    Assinar <FaArrowRightToBracket className="ml-2" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Direitos autorais */}
-      <div className="text-center text-gray-600 text-xs md:text-sm mt-6 border-t pt-4">
-        &copy; {new Date().getFullYear()} Bikes.com.br. Todos os direitos reservados.
+      {/* RODAPÉ INFERIOR */}
+      <div className="border-t mt-8 pt-4 text-xs flex flex-col md:flex-row justify-between items-center text-center md:text-left gap-2 px-2">
+        <p>Bikes.com.br | Todos os direitos reservados</p>
+        <p>Produzido por: Agência Cariri</p>
       </div>
     </footer>
   );
-};
-
-export default Footer;
+}
