@@ -17,12 +17,24 @@ export function Footer() {
           {/* COLUNA 1 - LINKS */}
           <div className="w-full md:w-1/3 flex justify-center md:justify-start">
             <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm text-center md:text-left">
-              <a href="#" className="hover:text-[#09BC8A]">Política de troca</a>
-              <a href="#" className="hover:text-[#09BC8A]">Crie sua conta</a>
-              <a href="#" className="hover:text-[#09BC8A]">Perguntas frequentes</a>
-              <a href="#" className="hover:text-[#09BC8A]">Trabalhe conosco</a>
-              <a href="#" className="hover:text-[#09BC8A]">Política de privacidade</a>
-              <a href="#" className="hover:text-[#09BC8A]">Anuncie na Bikes.com.br</a>
+              <a href="#" className="hover:text-[#09BC8A]">
+                Política de troca
+              </a>
+              <a href="#" className="hover:text-[#09BC8A]">
+                Crie sua conta
+              </a>
+              <a href="#" className="hover:text-[#09BC8A]">
+                Perguntas frequentes
+              </a>
+              <a href="#" className="hover:text-[#09BC8A]">
+                Trabalhe conosco
+              </a>
+              <a href="#" className="hover:text-[#09BC8A]">
+                Política de privacidade
+              </a>
+              <a href="#" className="hover:text-[#09BC8A]">
+                Anuncie na Bikes.com.br
+              </a>
             </div>
           </div>
 
@@ -30,51 +42,80 @@ export function Footer() {
           <div className="w-full md:w-1/3 flex flex-col items-center">
             <img src="/img/logo.png" alt="Logo" className="w-32 mb-4" />
             <div className="flex gap-3">
-              <a href="https://wa.me/" target="_blank" aria-label="WhatsApp" rel="noreferrer">
+              <a
+                href="https://wa.me/"
+                target="_blank"
+                aria-label="WhatsApp"
+                rel="noreferrer">
                 <div className="bg-[#0C1B33] rounded-full">
-                  <img src="/img/whatsapp-footer.png" className="h-7 w-7" alt="WhatsApp" />
+                  <img
+                    src="/img/whatsapp-footer.png"
+                    className="h-7 w-7"
+                    alt="WhatsApp"
+                  />
                 </div>
               </a>
-              <a href="https://instagram.com/" target="_blank" aria-label="Instagram" rel="noreferrer">
+              <a
+                href="https://instagram.com/"
+                target="_blank"
+                aria-label="Instagram"
+                rel="noreferrer">
                 <div className="bg-[#0C1B33] rounded-full">
-                  <img src="/img/instagram-footer.png" className="h-7 w-7" alt="Instagram" />
+                  <img
+                    src="/img/instagram-footer.png"
+                    className="h-7 w-7"
+                    alt="Instagram"
+                  />
                 </div>
               </a>
-              <a href="https://facebook.com/" target="_blank" aria-label="Facebook" rel="noreferrer">
+              <a
+                href="https://facebook.com/"
+                target="_blank"
+                aria-label="Facebook"
+                rel="noreferrer">
                 <div className="bg-[#0C1B33] rounded-full">
-                  <img src="/img/facebook-footer.png" className="h-7 w-7" alt="Facebook" />
+                  <img
+                    src="/img/facebook-footer.png"
+                    className="h-7 w-7"
+                    alt="Facebook"
+                  />
                 </div>
               </a>
             </div>
           </div>
 
           {/* COLUNA 3 - NEWSLETTER */}
-          <div className="w-full md:w-1/3 text-center md:text-right">
-            <label htmlFor="email" className="block text-sm font-medium mb-2">
-              Assine nossa Newsletter
-            </label>
-            <div className="flex flex-col items-center md:items-end gap-3">
-              <Input
-                type="email"
-                id="email"
-                placeholder="E-mail"
-                className="w-64 border-2 border-[#09BC8A] rounded-md px-3 py-2 text-sm"
-                required
-              />
-              <Button
-                disabled={isLoading}
-                className="bg-gradient-to-r from-[#09BC8A] to-[#0C1B33] text-white px-6 py-2 rounded-full text-sm"
-              >
-                {isLoading ? (
-                  "..."
-                ) : (
-                  <>
-                    Assinar <FaArrowRightToBracket className="ml-2" />
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
+          <div className="w-full md:w-1/3 text-center md:text-left">
+  <label
+    htmlFor="email"
+    className="text-sm font-medium text-left mb-2">
+    Assine nossa Newsletter
+  </label>
+  <div className="flex flex-col items-center md:items-start gap-3">
+    <Input
+      type="email"
+      id="email"
+      placeholder="E-mail"
+      className="w-64 border-2 border-[#09BC8A] rounded-md px-3 py-2 text-sm"
+      required
+    />
+    <div className="w-full flex justify-center"> {/* Alinha o botão à direita */}
+      <Button
+        disabled={isLoading}
+        className="bg-gradient-to-r from-[#09BC8A] to-[#0C1B33] text-white px-6 py-2 rounded-full text-sm">
+        {isLoading ? (
+          "..."
+        ) : (
+          <>
+            Assinar <FaArrowRightToBracket className="ml-2" />
+          </>
+        )}
+      </Button>
+    </div>
+  </div>
+</div>
+
+
         </div>
 
         {/* TELAS PEQUENAS */}
@@ -87,30 +128,66 @@ export function Footer() {
           {/* LINKS EM DUAS COLUNAS */}
           <div className="w-full flex justify-center">
             <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm text-center">
-              <a href="#" className="hover:text-[#09BC8A]">Política de troca</a>
-              <a href="#" className="hover:text-[#09BC8A]">Crie sua conta</a>
-              <a href="#" className="hover:text-[#09BC8A]">Perguntas frequentes</a>
-              <a href="#" className="hover:text-[#09BC8A]">Trabalhe conosco</a>
-              <a href="#" className="hover:text-[#09BC8A]">Política de privacidade</a>
-              <a href="#" className="hover:text-[#09BC8A]">Anuncie na Bikes.com.br</a>
+              <a href="#" className="hover:text-[#09BC8A]">
+                Política de troca
+              </a>
+              <a href="#" className="hover:text-[#09BC8A]">
+                Crie sua conta
+              </a>
+              <a href="#" className="hover:text-[#09BC8A]">
+                Perguntas frequentes
+              </a>
+              <a href="#" className="hover:text-[#09BC8A]">
+                Trabalhe conosco
+              </a>
+              <a href="#" className="hover:text-[#09BC8A]">
+                Política de privacidade
+              </a>
+              <a href="#" className="hover:text-[#09BC8A]">
+                Anuncie na Bikes.com.br
+              </a>
             </div>
           </div>
 
           {/* ÍCONES SOCIAIS */}
           <div className="flex justify-center gap-3">
-            <a href="https://wa.me/" target="_blank" aria-label="WhatsApp" rel="noreferrer">
+            <a
+              href="https://wa.me/"
+              target="_blank"
+              aria-label="WhatsApp"
+              rel="noreferrer">
               <div className="bg-[#0C1B33] rounded-full">
-                <img src="/img/whatsapp-footer.png" className="h-7 w-7" alt="WhatsApp" />
+                <img
+                  src="/img/whatsapp-footer.png"
+                  className="h-7 w-7"
+                  alt="WhatsApp"
+                />
               </div>
             </a>
-            <a href="https://instagram.com/" target="_blank" aria-label="Instagram" rel="noreferrer">
+            <a
+              href="https://instagram.com/"
+              target="_blank"
+              aria-label="Instagram"
+              rel="noreferrer">
               <div className="bg-[#0C1B33] rounded-full">
-                <img src="/img/instagram-footer.png" className="h-7 w-7" alt="Instagram" />
+                <img
+                  src="/img/instagram-footer.png"
+                  className="h-7 w-7"
+                  alt="Instagram"
+                />
               </div>
             </a>
-            <a href="https://facebook.com/" target="_blank" aria-label="Facebook" rel="noreferrer">
+            <a
+              href="https://facebook.com/"
+              target="_blank"
+              aria-label="Facebook"
+              rel="noreferrer">
               <div className="bg-[#0C1B33] rounded-full">
-                <img src="/img/facebook-footer.png" className="h-7 w-7" alt="Facebook" />
+                <img
+                  src="/img/facebook-footer.png"
+                  className="h-7 w-7"
+                  alt="Facebook"
+                />
               </div>
             </a>
           </div>
@@ -130,8 +207,7 @@ export function Footer() {
               />
               <Button
                 disabled={isLoading}
-                className="bg-gradient-to-r from-[#09BC8A] to-[#0C1B33] text-white px-6 py-2 rounded-full text-sm"
-              >
+                className="bg-gradient-to-r from-[#09BC8A] to-[#0C1B33] text-white py-2 rounded-full text-sm">
                 {isLoading ? (
                   "..."
                 ) : (
