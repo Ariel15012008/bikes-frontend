@@ -50,10 +50,10 @@ export function Footer() {
 
           {/* COLUNA 3 - NEWSLETTER */}
           <div className="w-full md:w-1/3 text-center md:text-right">
-            <label htmlFor="email" className="block text-sm font-medium mb-2">
+            <label htmlFor="email" className="block text-sm font-medium mb-2 w-64">
               Assine nossa Newsletter
             </label>
-            <div className="flex flex-col items-center md:items-end gap-3">
+            <div className="flex flex-col sm:flex-row md:flex-col items-center md:items-end gap-3">
               <Input
                 type="email"
                 id="email"
@@ -117,7 +117,7 @@ export function Footer() {
 
           {/* NEWSLETTER */}
           <div className="text-center">
-            <label htmlFor="email" className="block text-sm font-medium mb-2">
+            <label htmlFor="email" className="block text-sm font-medium mb-2 w-64 mx-auto">
               Assine nossa Newsletter
             </label>
             <div className="flex flex-col items-center gap-3">

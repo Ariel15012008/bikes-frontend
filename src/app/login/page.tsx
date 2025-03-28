@@ -39,10 +39,10 @@ export function LoginForm({
       const response = await api.post("/auth/login", {
         email: formData.email,
         senha: formData.senha,
-      })
+      });
 
       if (response.status === 200) {
-        router.push("/")
+        router.push("/teste")
       }
     } catch (error: any) {
       toast.error("Erro ao fazer login", {
