@@ -83,20 +83,10 @@ export function Header() {
       {/* Ícones do canto direito */}
       <div className="hidden md:flex items-center space-x-4">
         <Link href="/cart">
-          <Image
-            src="/img/carrinho.png"
-            alt="Carrinho"
-            width={27}
-            height={27}
-          />
+          <Image src="/img/carrinho.png" alt="Carrinho" width={27} height={27} />
         </Link>
         <Link href="/favorites">
-          <Image
-            src="/img/favoritos.png"
-            alt="Favoritos"
-            width={27}
-            height={27}
-          />
+          <Image src="/img/favoritos.png" alt="Favoritos" width={27} height={27} />
         </Link>
 
         {isAuthenticated ? (
