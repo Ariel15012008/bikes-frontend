@@ -132,8 +132,8 @@ export function Header() {
       {/* Menu Mobile */}
       <Sheet>
         <SheetTrigger asChild>
-          <Button variant="ghost" className="md:hidden">
-            <RxHamburgerMenu size={24} />
+          <Button variant="ghost" className="md:hidden scale-150">
+            <RxHamburgerMenu />
           </Button>
         </SheetTrigger>
         <SheetContent side="right" className="w-64">
