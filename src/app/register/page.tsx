@@ -224,9 +224,19 @@ const RegisterForm = ({ deviceType }: { deviceType: DeviceType }) => {
       }
     } catch (error: any) {
       console.error("Erro na requisição:", error);
-      toast.error("Erro ao cadastrar", {
-        description: error.response?.data?.message || "Ocorreu um erro ao tentar se cadastrar.",
-      });
+      if (
+        error.response?.data?.detail?.includes("Email já cadastrado") ||
+        error.response?.data?.message?.includes("Email já cadastrado")
+      ) {
+        // Mensagem genérica para email já cadastrado
+        toast.error("Erro ao cadastrar");
+      } else {
+        // Mostra outras mensagens de erro normalmente 
+        const errorMessage = error.response?.data?.detail || error.response?.data?.message || "Ocorreu um erro ao tentar se cadastrar.";
+        toast.error("Erro ao cadastrar", {
+          description: errorMessage,
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -802,7 +812,7 @@ export default function RegisterPage() {
 
       <div className={`fixed ${
         deviceType === "mobile" ? "top-2" : "top-4"
-      } right-0 z-50 max-w-[calc(100%-32px)] flex justify-end`}>
+      } right-0 z-50 max-w-[calc(100%-32px)] flex`}>
         <Toaster 
           position={deviceType === "mobile" ? "top-center" : "bottom-right"}
           toastOptions={{
