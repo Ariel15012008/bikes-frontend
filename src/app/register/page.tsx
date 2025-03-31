@@ -40,6 +40,9 @@ const useDeviceType = (): DeviceType => {
   return deviceType;
 };
 
+// Opções de regime tributário
+const regimesTributarios = ["MEI", "Simples Nacional", "Lucro Real", "Lucro Presumido"];
+
 const RegisterForm = ({ deviceType }: { deviceType: DeviceType }) => {
   const [formData, setFormData] = useState({
     nome_completo: "",
@@ -52,28 +55,78 @@ const RegisterForm = ({ deviceType }: { deviceType: DeviceType }) => {
     senha: "",
   });
 
+  const [errors, setErrors] = useState({
+    nome_completo: "",
+    email: "",
+    telefone_celular: "",
+    regime: ""
+  });
+
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [personType, setPersonType] = useState("fisica");
   const [currentPage, setCurrentPage] = useState(1);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showRegimeOptions, setShowRegimeOptions] = useState(false);
+  const [filteredRegimes, setFilteredRegimes] = useState(regimesTributarios);
   const router = useRouter();
+
+  // Validações
+  const validarNome = (nome: string) => {
+    if (nome.trim() === "") return "O nome é obrigatório";
+    if (/\d/.test(nome)) return "O nome não pode conter números";
+    return "";
+  };
+
+  const validarEmail = (email: string) => {
+    if (email.trim() === "") return "O e-mail é obrigatório";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Por favor, insira um e-mail válido";
+    return "";
+  };
+
+  const validarTelefone = (telefone: string) => {
+    const numbers = telefone.replace(/\D/g, "");
+    if (numbers.length !== 11) return "Telefone inválido (deve ter 11 dígitos)";
+    if (/[a-zA-Z]/.test(telefone)) return "O telefone não pode conter letras";
+    return "";
+  };
+
+  const validarRegime = (regime: string) => {
+    if (regime.trim() === "") return "O regime tributário é obrigatório";
+    if (!regimesTributarios.includes(regime)) return "Selecione um regime válido";
+    return "";
+  };
+
+  // Filtrar regimes conforme digitação
+  const filtrarRegimes = (valor: string) => {
+    if (valor === "") {
+      setFilteredRegimes(regimesTributarios);
+      return;
+    }
+    const filtrados = regimesTributarios.filter(regime =>
+      regime.toLowerCase().includes(valor.toLowerCase())
+    );
+    setFilteredRegimes(filtrados);
+  };
 
   const totalPages = useMemo(() => (personType === "fisica" ? 2 : 2), [personType]);
 
   const validateCurrentPage = useMemo(() => {
     if (currentPage === 1) {
-      const basicFieldsValid = 
-        formData.nome_completo.trim() !== "" &&
-        formData.email.trim() !== "" &&
-        formData.telefone_celular.replace(/\D/g, "").length === 11 &&
-        formData.cpf_cnpj.replace(/\D/g, "").length === (personType === "fisica" ? 11 : 14) &&
-        formData.data_nascimento.trim() !== "" &&
-        formData.senha.trim() !== "";
+      const nomeValido = validarNome(formData.nome_completo) === "";
+      const emailValido = validarEmail(formData.email) === "";
+      const telefoneValido = validarTelefone(formData.telefone_celular) === "";
+      const cpfCnpjValido = formData.cpf_cnpj.replace(/\D/g, "").length === (personType === "fisica" ? 11 : 14);
+      const dataValida = formData.data_nascimento.trim() !== "";
+      const senhaValida = formData.senha.trim() !== "";
 
-      return personType === "juridica" 
-        ? basicFieldsValid && formData.fantasia.trim() !== "" && formData.regime.trim() !== ""
-        : basicFieldsValid;
+      if (personType === "juridica") {
+        const regimeValido = validarRegime(formData.regime) === "";
+        const fantasiaValido = formData.fantasia.trim() !== "";
+        return nomeValido && emailValido && telefoneValido && cpfCnpjValido && 
+               dataValida && senhaValida && regimeValido && fantasiaValido;
+      }
+      return nomeValido && emailValido && telefoneValido && cpfCnpjValido && dataValida && senhaValida;
     }
     return true;
   }, [currentPage, formData, personType]);
@@ -116,6 +169,22 @@ const RegisterForm = ({ deviceType }: { deviceType: DeviceType }) => {
     
     if (!termsAccepted) {
       toast.error("Você precisa aceitar os termos de uso");
+      return;
+    }
+
+    // Validar todos os campos antes de enviar
+    const novosErros = {
+      nome_completo: validarNome(formData.nome_completo),
+      email: validarEmail(formData.email),
+      telefone_celular: validarTelefone(formData.telefone_celular),
+      regime: personType === "juridica" ? validarRegime(formData.regime) : ""
+    };
+
+    setErrors(novosErros);
+
+    const temErros = Object.values(novosErros).some(error => error !== "");
+    if (temErros) {
+      toast.error("Corrija os erros antes de enviar");
       return;
     }
 
@@ -171,10 +240,47 @@ const RegisterForm = ({ deviceType }: { deviceType: DeviceType }) => {
       formattedValue = personType === "fisica" ? formatCPF(value) : formatCNPJ(value);
     } else if (name === "telefone_celular") {
       formattedValue = formatPhone(value);
+    } else if (name === "regime") {
+      filtrarRegimes(value);
     }
 
     setFormData(prev => ({ ...prev, [name]: formattedValue }));
-  }, [personType, formatCPF, formatCNPJ, formatPhone]);
+    
+    // Limpar erro quando o usuário começa a digitar
+    if (errors[name as keyof typeof errors]) {
+      setErrors(prev => ({ ...prev, [name]: "" }));
+    }
+  }, [personType, formatCPF, formatCNPJ, formatPhone, errors]);
+
+  const handleBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    
+    let error = "";
+    switch (name) {
+      case "nome_completo":
+        error = validarNome(value);
+        break;
+      case "email":
+        error = validarEmail(value);
+        break;
+      case "telefone_celular":
+        error = validarTelefone(value);
+        break;
+      case "regime":
+        error = validarRegime(value);
+        break;
+      default:
+        break;
+    }
+
+    setErrors(prev => ({ ...prev, [name]: error }));
+  }, []);
+
+  const selecionarRegime = (regime: string) => {
+    setFormData(prev => ({ ...prev, regime }));
+    setShowRegimeOptions(false);
+    setErrors(prev => ({ ...prev, regime: "" }));
+  };
 
   const nextPage = useCallback(() => {
     if (!validateCurrentPage) {
@@ -195,39 +301,39 @@ const RegisterForm = ({ deviceType }: { deviceType: DeviceType }) => {
           <h3 className="text-lg font-medium">Confirmação de Dados</h3>
           <div className="bg-gray-50 p-4 rounded-md">
             <div className={`grid ${deviceType === "mobile" ? "grid-cols-1" : "grid-cols-2"} gap-4`}>
-              <div>
+              <div className="break-words overflow-hidden">
                 <p className="text-sm text-gray-500">Nome</p>
-                <p className="font-medium">{formData.nome_completo}</p>
+                <p className="font-medium break-all">{formData.nome_completo}</p>
               </div>
-              <div>
+              <div className="break-words overflow-hidden">
                 <p className="text-sm text-gray-500">E-mail</p>
-                <p className="font-medium">{formData.email}</p>
+                <p className="font-medium break-all">{formData.email}</p>
               </div>
-              <div>
+              <div className="break-words overflow-hidden">
                 <p className="text-sm text-gray-500">Telefone</p>
-                <p className="font-medium">{formData.telefone_celular}</p>
+                <p className="font-medium break-all">{formData.telefone_celular}</p>
               </div>
-              <div>
+              <div className="break-words overflow-hidden">
                 <p className="text-sm text-gray-500">
                   {personType === "fisica" ? "CPF" : "CNPJ"}
                 </p>
-                <p className="font-medium">{formData.cpf_cnpj}</p>
+                <p className="font-medium break-all">{formData.cpf_cnpj}</p>
               </div>
-              <div>
+              <div className="break-words overflow-hidden">
                 <p className="text-sm text-gray-500">
                   {personType === "fisica" ? "Data Nasc." : "Data Fundação"}
                 </p>
-                <p className="font-medium">{formData.data_nascimento}</p>
+                <p className="font-medium break-all">{formData.data_nascimento}</p>
               </div>
               {personType === "juridica" && (
                 <>
-                  <div>
+                  <div className="break-words overflow-hidden">
                     <p className="text-sm text-gray-500">Nome Fantasia</p>
-                    <p className="font-medium">{formData.fantasia || "-"}</p>
+                    <p className="font-medium break-all">{formData.fantasia || "-"}</p>
                   </div>
-                  <div>
+                  <div className="break-words overflow-hidden">
                     <p className="text-sm text-gray-500">Regime Tributário</p>
-                    <p className="font-medium">{formData.regime || "-"}</p>
+                    <p className="font-medium break-all">{formData.regime || "-"}</p>
                   </div>
                 </>
               )}
@@ -337,10 +443,14 @@ const RegisterForm = ({ deviceType }: { deviceType: DeviceType }) => {
               type="text"
               value={formData.nome_completo}
               onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="Digite seu nome completo"
               required
-              className="w-full"
+              className={`w-full ${errors.nome_completo ? "border-red-500" : ""}`}
             />
+            {errors.nome_completo && (
+              <p className="mt-1 text-sm text-red-600">{errors.nome_completo}</p>
+            )}
           </div>
 
           <div className={`flex ${
@@ -359,10 +469,14 @@ const RegisterForm = ({ deviceType }: { deviceType: DeviceType }) => {
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 placeholder="m@example.com"
                 required
-                className="w-full"
+                className={`w-full ${errors.email ? "border-red-500" : ""}`}
               />
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+              )}
             </div>
             <div className="w-full md:w-1/2">
               <Label htmlFor="telefone" className={`${
@@ -376,11 +490,15 @@ const RegisterForm = ({ deviceType }: { deviceType: DeviceType }) => {
                 type="text"
                 value={formData.telefone_celular}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 placeholder="(XX) XXXXX-XXXX"
                 maxLength={15}
                 required
-                className="w-full"
+                className={`w-full ${errors.telefone_celular ? "border-red-500" : ""}`}
               />
+              {errors.telefone_celular && (
+                <p className="mt-1 text-sm text-red-600">{errors.telefone_celular}</p>
+              )}
             </div>
           </div>
 
@@ -448,7 +566,7 @@ const RegisterForm = ({ deviceType }: { deviceType: DeviceType }) => {
                   className="w-full"
                 />
               </div>
-              <div className="w-full md:w-1/2">
+              <div className="w-full md:w-1/2 relative">
                 <Label htmlFor="regime" className={`${
                   deviceType === "mobile" ? "text-sm" : "text-base"
                 } text-gray-700`}>
@@ -460,10 +578,28 @@ const RegisterForm = ({ deviceType }: { deviceType: DeviceType }) => {
                   type="text"
                   value={formData.regime}
                   onChange={handleChange}
+                  onBlur={() => setTimeout(() => setShowRegimeOptions(false), 200)}
+                  onFocus={() => setShowRegimeOptions(true)}
                   placeholder="Digite o Regime Tributário"
                   required
-                  className="w-full"
+                  className={`w-full ${errors.regime ? "border-red-500" : ""}`}
                 />
+                {errors.regime && (
+                  <p className="mt-1 text-sm text-red-600">{errors.regime}</p>
+                )}
+                {showRegimeOptions && (
+                  <ul className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                    {filteredRegimes.map((regime, index) => (
+                      <li
+                        key={index}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                        onClick={() => selecionarRegime(regime)}
+                      >
+                        {regime}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             </div>
           )}
@@ -501,7 +637,7 @@ const RegisterForm = ({ deviceType }: { deviceType: DeviceType }) => {
         </div>
       </>
     );
-  }, [currentPage, deviceType, formData, handleChange, personType, showPassword, termsAccepted]);
+  }, [currentPage, deviceType, formData, handleChange, handleBlur, personType, showPassword, termsAccepted, errors, showRegimeOptions, filteredRegimes, selecionarRegime]);
 
   const renderNavigationButtons = useMemo(() => {
     return (
@@ -685,4 +821,4 @@ export default function RegisterPage() {
       </div>
     </>
   );
-};
+}

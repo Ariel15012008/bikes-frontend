@@ -23,16 +23,44 @@ export function LoginForm({
   })
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [emailError, setEmailError] = useState("")
 
   const router = useRouter()
+
+  const validateEmail = (email: string) => {
+    if (!email) return "O e-mail é obrigatório"
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Por favor, insira um e-mail válido"
+    return ""
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    
+    // Validar e-mail em tempo real
+    if (name === "email") {
+      setEmailError(validateEmail(value))
+    }
+  }
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    if (e.target.name === "email") {
+      setEmailError(validateEmail(e.target.value))
+    }
   }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validar campos antes de enviar
+    const emailValidation = validateEmail(formData.email)
+    setEmailError(emailValidation)
+    
+    if (emailValidation) {
+      toast.error("Corrija os erros antes de continuar")
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -74,9 +102,13 @@ export function LoginForm({
             placeholder="m@example.com"
             value={formData.email}
             onChange={handleChange}
-            className="bg-[#f9f9f9] border border-gray-300 focus:border-[#09bc8a] focus:ring-0 transition-all text-base h-11"
+            onBlur={handleBlur}
+            className={`bg-[#f9f9f9] border ${emailError ? "border-red-500" : "border-gray-300 focus:border-[#09bc8a]"} focus:ring-0 transition-all text-base h-11`}
             required
           />
+          {emailError && (
+            <p className="text-sm text-red-600">{emailError}</p>
+          )}
         </div>
 
         <div className="grid gap-3">
