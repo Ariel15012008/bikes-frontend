@@ -49,7 +49,7 @@ export function Header() {
 
     setIsAuthenticated(false);
     setUser(null);
-    router.push("/pages/login");
+    router.push("/login");
   };
 
   return (
@@ -141,21 +141,21 @@ export function Header() {
             <h2 className="text-xl font-semibold mb-4">Menu</h2>
             <nav className="space-y-4">
               <Link
-                href="/pages/about"
+                href="/about"
                 className="flex items-center space-x-2 text-lg"
               >
                 <HiHome />
                 <span>Quem somos</span>
               </Link>
               <Link
-                href="/pages/home"
+                href="/home"
                 className="flex items-center space-x-2 text-lg"
               >
                 <HiShoppingBag />
                 <span>Comprar</span>
               </Link>
               <Link
-                href="/pages/sell"
+                href="/sell"
                 className="flex items-center space-x-2 text-lg"
               >
                 <HiUsers />
@@ -174,7 +174,7 @@ export function Header() {
               <>
                 <div className="border-t my-4"></div>
                 <Link
-                  href="/pages/user"
+                  href="/user"
                   className="flex items-center space-x-2 text-lg"
                 >
                   <IoPersonCircle />

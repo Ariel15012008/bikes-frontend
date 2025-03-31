@@ -6,7 +6,7 @@ export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if ((pathname === "/login" || pathname === "/register") && loggedUser === "true") {
-    return NextResponse.redirect(new URL("/", req.url));
+    return NextResponse.redirect(new URL("/teste", req.url));
   }
 
   if (pathname === "/teste" && loggedUser !== "true") {
