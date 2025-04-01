@@ -110,7 +110,7 @@ const Home = () => {
                   </div>
                 </Link>
               ))}
-              <div className="hidden sm:block absolute right-0 top-0 bg-gray-100 w-[150px] sm:w-[220px] h-[280px] sm:h-[360px] rounded-md shadow-md flex items-center justify-center">
+              <div className="hidden sm:block absolute right-0 top-0 bg-gray-100 w-[150px] sm:w-[220px] h-[280px] sm:h-[360px] rounded-md shadow-md items-center justify-center">
                 <h5 className="text-base sm:text-lg font-bold">Anúncio</h5>
               </div>
             </div>
