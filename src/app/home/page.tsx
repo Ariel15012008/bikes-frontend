@@ -35,7 +35,7 @@ const Home = () => {
 
       <main className="mt-[60px]">
         {/* Section 1 - Hero com barra de pesquisa */}
-        <section id="home" className="relative mb-16 md:mb-32">
+        <section id="home" className="relative max-md:mb-28 md:mb-32">
           <div className="relative w-full h-[300px] sm:h-[400px] md:h-[500px]">
             <Image
               src="/img/fundo-home.png"
@@ -87,35 +87,46 @@ const Home = () => {
             </div>
           </div>
         </section>
-
-        {/* Section 2 - Escolha por marca */}
-        <section className="mb-10 md:mb-16 px-4 sm:px-5 text-center">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-5">
-            Escolha por marca
-          </h1>
-          <div className="flex justify-center">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-x-2 sm:gap-y-5 w-full max-w-[700px] relative">
-              {cardSection2Data.map((card, index) => (
-                <Link
-                  href={card.link}
-                  key={index}
-                  className="w-full sm:w-[200px] h-[120px] sm:h-[160px] mx-auto">
-                  <div className="bg-white rounded-md shadow-md relative w-full h-full overflow-hidden">
-                    <Image
-                      src={card.image}
-                      alt={`Marca ${index + 1}`}
-                      fill
-                      className="object-contain p-3 sm:p-4"
-                    />
-                  </div>
-                </Link>
-              ))}
-              <div className="hidden sm:block absolute right-0 top-0 bg-gray-100 w-[150px] sm:w-[220px] h-[280px] sm:h-[360px] rounded-md shadow-md items-center justify-center">
-                <h5 className="text-base sm:text-lg font-bold">Anúncio</h5>
-              </div>
-            </div>
+{/* Section 2 - Escolha por marca (versão final) */}
+<section className="mb-10  md:mb-16 px-4 sm:px-5 text-center">
+  <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 mt-4 sm:mb-5">
+    Escolha por marca
+  </h1>
+  <div className="flex justify-center">
+    <div className="grid grid-cols-3 p-2 sm:gap-5 max-sm:gap-2 w-full max-w-[700px] relative">
+      {/* 6 cards de marcas (2 linhas de 3 colunas) - Mantido original */}
+      {cardSection2Data.map((card, index) => (
+        <Link
+          href={card.link}
+          key={index}
+          className="w-full h-[120px] sm:h-[160px] mx-auto">
+          <div className="bg-white rounded-md shadow-md relative gap-3 w-full h-full overflow-hidden">
+            <Image
+              src={card.image}
+              alt={`Marca ${index + 1}`}
+              fill
+              className="object-contain p-3 sm:p-4"
+            />
           </div>
-        </section>
+        </Link>
+      ))}
+      
+      {/* Anúncio DESKTOP (acima de 1260px) - Mantido original */}
+      <div className="hidden min-[1230px]:block absolute -right-4 top-0 
+                      w-[120px] sm:w-[150px] md:w-[180px] lg:w-[220px] 
+                      h-[250px] sm:h-[280px] md:h-[330px] lg:h-[360px] 
+                      bg-gray-100 rounded-md shadow-md items-center justify-center 
+                      transform translate-x-full">
+        <h5 className="text-base sm:text-lg font-bold">Anúncio</h5>
+      </div>
+      
+      {/* Anúncio MOBILE (abaixo de 1260px) - Nova versão */}
+      <div className="min-[1230px]:hidden w-auto h-[120px] mt-6 mr-2 bg-gray-100 rounded-md shadow-md flex items-center justify-center col-span-3">
+        <h5 className="text-base font-bold">Anúncio</h5>
+      </div>
+    </div>
+  </div>
+</section>
 
         {/* Section 3 - Destaque da semana */}
         <section className="mb-10 md:mb-16 text-center px-4">
