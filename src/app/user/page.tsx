@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
 import { Input } from '@/components/ui/input';
@@ -10,17 +10,20 @@ import { IoEyeSharp, IoEyeOffSharp } from 'react-icons/io5';
 import Image from 'next/image';
 import api from '@/app/utils/axiosInstance';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
   const [formData, setFormData] = useState({
-    nome: 'João Silva',
-    email: 'user@example.com',
-    telefone: '(11) 91234-5678',
+    nome: '',
+    email: '',
+    telefone: '',
     senha: '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
+  const router = useRouter();
 
   const formatPhone = (value: string): string => {
     const numbers = value.replace(/\D/g, '');
@@ -30,10 +33,34 @@ export default function ProfilePage() {
     return value;
   };
 
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const { data } = await api.get('/users/me');
+
+        setFormData({
+          nome: data.nome || '',
+          email: data.email || '',
+          telefone: data.telefone ? formatPhone(data.telefone) : '',
+          senha: '',
+        });
+      } catch (error) {
+        toast.error('Erro ao carregar perfil', {
+          description: 'Não foi possível carregar os dados do seu perfil.',
+        });
+        router.push('/login');
+      } finally {
+        setIsFetching(false);
+      }
+    };
+
+    fetchUserData();
+  }, [router]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    let formattedValue = value;
 
+    let formattedValue = value;
     if (name === 'telefone') {
       formattedValue = formatPhone(value);
     }
@@ -54,7 +81,7 @@ export default function ProfilePage() {
         },
         usuario: {
           email: formData.email,
-          senha: formData.senha || undefined, // só envia se estiver preenchida
+          senha: formData.senha || undefined,
         },
       };
 
@@ -65,18 +92,27 @@ export default function ProfilePage() {
         setFormData((prev) => ({ ...prev, senha: '' }));
       }
     } catch (error: any) {
-      console.error('Erro ao atualizar perfil:', error);
-      const errorMsg =
+      const msg =
         error.response?.data?.message ||
         error.response?.data?.detail ||
         'Erro ao atualizar perfil.';
-      toast.error('Erro ao atualizar', {
-        description: errorMsg,
-      });
+      toast.error('Erro ao atualizar', { description: msg });
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (isFetching) {
+    return (
+      <div className="font-sans">
+        <Header />
+        <main className="mt-[80px] min-h-screen px-4 py-10 bg-gray-100 flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-[#09bc8a] border-t-transparent rounded-full animate-spin"></div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="font-sans">
@@ -98,30 +134,27 @@ export default function ProfilePage() {
             <Button variant="outline">Trocar foto</Button>
           </div>
 
-          {/* Formulário de edição */}
+          {/* Formulário */}
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <Label htmlFor="nome">Nome</Label>
+              <Label htmlFor="nome">Nome completo</Label>
               <Input
                 id="nome"
                 name="nome"
-                type="text"
                 value={formData.nome}
                 onChange={handleChange}
-                placeholder="Digite seu nome"
                 required
               />
             </div>
 
             <div>
-              <Label htmlFor="email">E-mail</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="Digite seu e-mail"
                 required
               />
             </div>
@@ -131,10 +164,8 @@ export default function ProfilePage() {
               <Input
                 id="telefone"
                 name="telefone"
-                type="text"
                 value={formData.telefone}
                 onChange={handleChange}
-                placeholder="(XX) XXXXX-XXXX"
                 maxLength={15}
                 required
               />
@@ -149,8 +180,7 @@ export default function ProfilePage() {
                   type={showPassword ? 'text' : 'password'}
                   value={formData.senha}
                   onChange={handleChange}
-                  placeholder="Digite uma nova senha"
-                  minLength={6}
+                  placeholder="Deixe em branco para manter a atual"
                   className="pr-10"
                 />
                 <button
@@ -161,6 +191,9 @@ export default function ProfilePage() {
                   {showPassword ? <IoEyeOffSharp /> : <IoEyeSharp />}
                 </button>
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Preencha apenas se desejar alterar sua senha
+              </p>
             </div>
 
             <Button
