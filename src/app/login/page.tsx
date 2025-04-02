@@ -71,7 +71,7 @@ export function LoginForm({
       });
 
       if (response.status === 200) {
-        router.push("/teste");
+        router.push("/home");
       }
     } catch (error: any) {
       toast.error("Erro ao fazer login", {

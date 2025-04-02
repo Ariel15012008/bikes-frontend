@@ -55,7 +55,7 @@ export function Header() {
   return (
     <header className="fixed top-0 left-0 w-full bg-white shadow-md flex items-center justify-between p-4 z-50">
       {/* Logo */}
-      <Link href="/pages/home">
+      <Link href="/home">
         <Image
           src="/img/logo.png"
           alt="Logo do Projeto"
@@ -66,13 +66,13 @@ export function Header() {
 
       {/* Links centrais (desktop) */}
       <nav className="hidden md:flex space-x-6 text-lg font-medium">
-        <Link href="/pages/about" className="hover:text-gray-600">
+        <Link href="/about" className="hover:text-gray-600">
           Quem somos
         </Link>
-        <Link href="/pages/home" className="hover:text-gray-600">
+        <Link href="/home" className="hover:text-gray-600">
           Comprar
         </Link>
-        <Link href="/pages/sell" className="hover:text-gray-600">
+        <Link href="/sell" className="hover:text-gray-600">
           Vender
         </Link>
         <Link href="#contact" className="hover:text-gray-600">
@@ -107,11 +107,11 @@ export function Header() {
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <HiHome className="mr-2" />
-                <Link href="/pages/home">Home</Link>
+                <Link href="/home">Home</Link>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <HiCog className="mr-2" />
-                <Link href="/pages/user">Configurações</Link>
+                <Link href="/user">Configurações</Link>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={logout} className="text-red-600">
                 <BiLogOut className="mr-2" />
@@ -121,7 +121,7 @@ export function Header() {
           </DropdownMenu>
         ) : (
           <Link
-            href="/pages/login"
+            href="/login"
             className="text-lg font-medium hover:text-gray-600"
           >
             Entrar
