@@ -5,11 +5,6 @@ export function middleware(req: NextRequest) {
   const loggedUser = req.cookies.get("logged_user")?.value;
   const { pathname } = req.nextUrl;
 
-  //  Rota privada SEM login, ele redireciona
-  if (pathname === "/password" || pathname === "/resetPassword" ||pathname === "//resetPassword/:path*" && !loggedUser) {
-    return NextResponse.redirect(new URL("/", req.url));
-  }
-
   // ✅ Se estiver logado, verifica expiração
   if (loggedUser) {
     const loggedTime = parseInt(loggedUser);
