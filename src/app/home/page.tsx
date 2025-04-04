@@ -1,13 +1,35 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FaMagnifyingGlass, FaArrowRightToBracket } from 'react-icons/fa6';
 import { Header } from "../../components/header";
 import { Footer } from "../../components/footer";
 import Image from 'next/image';
 import Link from 'next/link';
+import { authFetch } from "../utils/authFetch";
 
 const Home = () => {
+  useEffect(() => {
+    async function renewToken() {
+      try {
+        const res = await authFetch("http://localhost:8000/auth/refresh-token", {
+          method: "POST",
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          console.log("[Home] Token renovado com sucesso:", data);
+        } else {
+          console.warn("[Home] Falha ao renovar token");
+        }
+      } catch (err) {
+        console.error("[Home] Erro ao tentar renovar token:", err);
+      }
+    }
+
+    renewToken();
+  }, []);
+
   const [activeTab, setActiveTab] = useState("tab1");
   const [searchValue, setSearchValue] = useState("");
 

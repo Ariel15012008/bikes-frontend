@@ -11,8 +11,31 @@ import Image from 'next/image';
 import api from '@/app/utils/axiosInstance';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { authFetch } from '../utils/authFetch';
 
 export default function ProfilePage() {
+
+    useEffect(() => {
+      async function renewToken() {
+        try {
+          const res = await authFetch("http://localhost:8000/auth/refresh-token", {
+            method: "POST",
+          });
+  
+          if (res.ok) {
+            const data = await res.json();
+            console.log("[Home] Token renovado com sucesso:", data);
+          } else {
+            console.warn("[Home] Falha ao renovar token");
+          }
+        } catch (err) {
+          console.error("[Home] Erro ao tentar renovar token:", err);
+        }
+      }
+  
+      renewToken();
+    }, []);
+
   const [formData, setFormData] = useState({
     nome: '',
     email: '',

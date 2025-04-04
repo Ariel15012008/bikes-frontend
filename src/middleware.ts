@@ -5,48 +5,47 @@ export function middleware(req: NextRequest) {
   const loggedUser = req.cookies.get("logged_user")?.value;
   const { pathname } = req.nextUrl;
 
-  // Redireciona para refresh_token se tempo de sessão passou de 10 minutos
-  if (loggedUser) {
-    const loggedTime = parseInt(loggedUser); // timestamp em ms
-    const now = Date.now();
-    const tenMinutes = 10 * 60 * 1000;
+  console.log(`\n[Middleware] Rota acessada: ${pathname}`);
+  console.log(`[Middleware] logged_user: ${loggedUser}`);
 
-    if (now - loggedTime > tenMinutes) {
-      const refreshUrl = new URL("/api/refresh-token", req.url);
+  // Verifica apenas se existe um usuário logado
+  if (loggedUser) {
+    const loggedTime = parseInt(loggedUser);
+    const now = Date.now();
+    const twoMinutes = 2 * 60 * 1000; // 2 minutos em milissegundos
+    const timeDiff = now - loggedTime;
+
+    console.log(`[Middleware] Tempo desde login: ${timeDiff}ms (${Math.floor(timeDiff/1000)}s)`);
+    console.log(`[Middleware] Limite de expiração: ${twoMinutes}ms (2 minutos)`);
+
+    if (timeDiff > twoMinutes) {
+      console.log(`[Middleware] Sessão expirada - redirecionando para refresh`);
+      const refreshUrl = new URL("/auth/refresh-token", req.url);
       refreshUrl.searchParams.set("next", pathname);
-      return NextResponse.redirect(refreshUrl);
+      
+      // Cria resposta de redirecionamento
+      const response = NextResponse.redirect(refreshUrl);
+      
+      // Remove cookies expirados (opcional)
+      response.cookies.delete("access_token");
+      response.cookies.delete("logged_user");
+      
+      return response;
+    } else {
+      console.log(`[Middleware] Sessão válida - permitindo acesso`);
     }
   }
 
-  // Rotas públicas não acessíveis se já estiver logado
-  if (
-    ["/login", "/register", "/password", "/resetPassword"].includes(pathname) &&
-    loggedUser
-  ) {
-    return NextResponse.redirect(new URL("/teste", req.url));
-  }
-
-  // Rota privada sem login
-  if (pathname === "/teste" && !loggedUser) {
-    return NextResponse.redirect(new URL("/", req.url));
-  }
-
-  // Bloqueia reset sem token
-  if (pathname.startsWith("/resetPassword") && !req.nextUrl.searchParams.get("token")) {
-    return NextResponse.redirect(new URL("/password", req.url));
-  }
-
+  // Continue com a requisição normalmente se não precisar renovar
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    "/login",
-    "/register",
-    "/teste",
-    "/password",
-    "/resetPassword",
-    "/resetPassword/:path*",
-    "/((?!_next|api|favicon.ico).*)",
+    // Suas rotas protegidas aqui
+    "/dashboard",
+    "/profile",
+    // Exclui rotas de API e refresh-token
+    "/((?!api/refresh-token|_next/static|_next/image|favicon.ico).*)",
   ],
 };
