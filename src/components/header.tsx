@@ -103,15 +103,19 @@ export function Header() {
             <DropdownMenuContent align="end">
               <DropdownMenuItem>
                 <IoPersonCircle className="mr-2" />
+                <Link href="/user">
                 <span>{user?.name || "Usuário"}</span>
+                </Link>
               </DropdownMenuItem>
+              <Link href="/home">
               <DropdownMenuItem>
                 <HiHome className="mr-2" />
-                <Link href="/home">Home</Link>
+                Home
               </DropdownMenuItem>
+              </Link>
               <DropdownMenuItem>
                 <HiCog className="mr-2" />
-                <Link href="/user">Configurações</Link>
+                <Link href="/config">Configurações</Link>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={logout} className="text-red-600">
                 <BiLogOut className="mr-2" />
