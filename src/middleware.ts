@@ -5,47 +5,65 @@ export function middleware(req: NextRequest) {
   const loggedUser = req.cookies.get("logged_user")?.value;
   const { pathname } = req.nextUrl;
 
-  console.log(`\n[Middleware] Rota acessada: ${pathname}`);
-  console.log(`[Middleware] logged_user: ${loggedUser}`);
+  //  Rota privada SEM login, ele redireciona
+  if (pathname === "/password" || pathname === "/resetPassword" ||pathname === "//resetPassword/:path*" && !loggedUser) {
+    return NextResponse.redirect(new URL("/", req.url));
+  }
 
-  // Verifica apenas se existe um usuário logado
+  // ✅ Se estiver logado, verifica expiração
   if (loggedUser) {
     const loggedTime = parseInt(loggedUser);
     const now = Date.now();
-    const twoMinutes = 2 * 60 * 1000; // 2 minutos em milissegundos
+    const twoMinutes = 2 * 60 * 1000;
     const timeDiff = now - loggedTime;
 
-    console.log(`[Middleware] Tempo desde login: ${timeDiff}ms (${Math.floor(timeDiff/1000)}s)`);
-    console.log(`[Middleware] Limite de expiração: ${twoMinutes}ms (2 minutos)`);
+    console.log(
+      `[Middleware] Tempo desde login: ${Math.floor(timeDiff / 1000)}s`
+    );
 
     if (timeDiff > twoMinutes) {
       console.log(`[Middleware] Sessão expirada - redirecionando para refresh`);
+
       const refreshUrl = new URL("/auth/refresh-token", req.url);
       refreshUrl.searchParams.set("next", pathname);
-      
-      // Cria resposta de redirecionamento
+
       const response = NextResponse.redirect(refreshUrl);
-      
-      // Remove cookies expirados (opcional)
       response.cookies.delete("access_token");
       response.cookies.delete("logged_user");
-      
+
       return response;
     } else {
-      console.log(`[Middleware] Sessão válida - permitindo acesso`);
+      console.log(`[Middleware] Sessão válida`);
     }
   }
 
-  // Continue com a requisição normalmente se não precisar renovar
+  // Se já estiver logado, redireciona de volta se tentar acessar rotas públicas
+  if (
+    ["/login", "/register", "/password", "/resetPassword"].includes(pathname) &&
+    loggedUser
+  ) {
+    console.log(`[Middleware] Usuário já logado - redirecionando para /teste`);
+    return NextResponse.redirect(new URL("/home", req.url));
+  }
+
+  // Proteção de token em resetPassword
+  if (
+    pathname.startsWith("/resetPassword") &&
+    !req.nextUrl.searchParams.get("token")
+  ) {
+    return NextResponse.redirect(new URL("/password", req.url));
+  }
+
   return NextResponse.next();
 }
 
 export const config = {
   matcher: [
-    // Suas rotas protegidas aqui
-    "/dashboard",
-    "/profile",
-    // Exclui rotas de API e refresh-token
-    "/((?!api/refresh-token|_next/static|_next/image|favicon.ico).*)",
+    "/login",
+    "/register",
+    "/home",
+    "/password",
+    "/resetPassword",
+    "/resetPassword/:path*",
   ],
 };

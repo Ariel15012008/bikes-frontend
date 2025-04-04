@@ -11,20 +11,12 @@ import { authFetch } from "../utils/authFetch";
 const Home = () => {
   useEffect(() => {
     async function renewToken() {
-      try {
         const res = await authFetch("http://localhost:8000/auth/refresh-token", {
           method: "POST",
         });
-
         if (res.ok) {
           const data = await res.json();
-          console.log("[Home] Token renovado com sucesso:", data);
-        } else {
-          console.warn("[Home] Falha ao renovar token");
         }
-      } catch (err) {
-        console.error("[Home] Erro ao tentar renovar token:", err);
-      }
     }
 
     renewToken();
