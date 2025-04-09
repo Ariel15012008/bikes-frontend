@@ -37,7 +37,6 @@ export function middleware(req: NextRequest) {
     ["/login", "/register", "/password", "/resetPassword"].includes(pathname) &&
     loggedUser
   ) {
-    console.log(`[Middleware] Usuário já logado - redirecionando para /teste`);
     return NextResponse.redirect(new URL("/home", req.url));
   }
 
