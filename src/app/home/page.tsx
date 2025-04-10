@@ -152,7 +152,7 @@ const Home = () => {
               <div
                 key={i}
                 className="bg-white rounded-md shadow-md w-full max-w-[450px] h-[350px] sm:h-[400px] p-3 sm:p-4 flex flex-col">
-                <div className="relative w-full h-[150px] sm:h-[200px] bg-gray-100">
+                <div className="relative w-full h-[150px] sm:h-[200px]">
                   <Image
                     src="/img/highlight.png"
                     alt="Produto destaque"
@@ -223,7 +223,7 @@ const Home = () => {
               <div
                 key={i}
                 className="bg-white rounded-md shadow-md w-full max-w-[350px] h-[330px] sm:h-[380px] p-3 sm:p-4 flex flex-col mx-auto">
-                <div className="relative w-full h-[140px] sm:h-[180px] bg-gray-100">
+                <div className="relative w-full h-[140px] sm:h-[180px]">
                   <Image
                     src="/img/highlight.png"
                     alt={`Produto ${i + 1}`}
@@ -262,7 +262,7 @@ const Home = () => {
                   <div
                     key={i}
                     className="bg-white rounded-md shadow-md w-full max-w-[350px] h-[330px] sm:h-[380px] p-3 sm:p-4 flex flex-col mx-auto">
-                    <div className="relative w-full h-[140px] sm:h-[180px] bg-gray-100">
+                    <div className="relative w-full h-[140px] sm:h-[180px]">
                       <Image
                         src="/img/highlight.png"
                         alt={`Produto ${i + 1}`}
