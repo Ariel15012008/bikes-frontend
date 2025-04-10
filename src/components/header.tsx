@@ -44,7 +44,7 @@ export function Header() {
   const logout = async () => {
     await fetch("http://localhost:8000/auth/logout", {
       method: "POST",
-      credentials: "include"
+      credentials: "include",
     });
 
     setIsAuthenticated(false);
@@ -59,7 +59,7 @@ export function Header() {
         <Image
           src="/img/logo.png"
           alt="Logo do Projeto"
-          width={150}
+          width={100}
           height={50}
         />
       </Link>
@@ -83,10 +83,20 @@ export function Header() {
       {/* Ícones do canto direito */}
       <div className="hidden md:flex items-center space-x-4">
         <Link href="/cart">
-          <Image src="/img/carrinho.png" alt="Carrinho" width={27} height={27} />
+          <Image
+            src="/img/carrinho.png"
+            alt="Carrinho"
+            width={27}
+            height={27}
+          />
         </Link>
         <Link href="/favorites">
-          <Image src="/img/favoritos.png" alt="Favoritos" width={27} height={27} />
+          <Image
+            src="/img/favoritos.png"
+            alt="Favoritos"
+            width={27}
+            height={27}
+          />
         </Link>
 
         {isAuthenticated ? (
@@ -102,23 +112,31 @@ export function Header() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem>
-                <IoPersonCircle className="mr-2" />
-                <Link href="/user">
-                <span>{user?.name || "Usuário"}</span>
+                <Link href="/user" className="flex flex-row cursor-pointer">
+                  <IoPersonCircle className="mr-2  mt-0.5" />
+                  <span>{user?.name || "Usuário"}</span>
                 </Link>
               </DropdownMenuItem>
-              <Link href="/home">
+
               <DropdownMenuItem>
-                <HiHome className="mr-2" />
-                Home
+                <Link href="/home" className="flex flex-row cursor-pointer">
+                  <HiHome className="mr-2 mt-0.5" />
+                  Home
+                </Link>
               </DropdownMenuItem>
-              </Link>
+
               <DropdownMenuItem>
-                <HiCog className="mr-2" />
-                <Link href="/config">Configurações</Link>
+                <Link href="/config" className="flex flex-row cursor-pointer">
+                  <HiCog className="mr-2 mt-0.5" />
+                  Configurações
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={logout} className="text-red-600">
-                <BiLogOut className="mr-2" />
+
+              <DropdownMenuItem
+                onClick={logout}
+                className="text-red-600 cursor-pointer"
+              >
+                <BiLogOut className="" />
                 Sair
               </DropdownMenuItem>
             </DropdownMenuContent>
