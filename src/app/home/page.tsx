@@ -106,7 +106,7 @@ const Home = () => {
   <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 mt-4 sm:mb-5">
     Escolha por marca
   </h1>
-  <div className="flex justify-center">
+  <div className="flex justify-center xl:pr-48">
     <div className="grid grid-cols-3 p-2 sm:gap-5 max-sm:gap-2 w-full max-w-[700px] relative">
       {/* 6 cards de marcas (2 linhas de 3 colunas) - Mantido original */}
       {cardSection2Data.map((card, index) => (
