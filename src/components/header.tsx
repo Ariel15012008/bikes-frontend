@@ -16,6 +16,7 @@ import { HiCog, HiShoppingBag, HiUsers, HiPhone, HiHome } from "react-icons/hi";
 import { BiLogOut } from "react-icons/bi";
 import { IoPersonCircle } from "react-icons/io5";
 import { RxHamburgerMenu } from "react-icons/rx";
+import { MdAddBusiness } from "react-icons/md";
 
 export function Header() {
   const [user, setUser] = useState<{ name: string; email: string } | null>(
@@ -122,6 +123,13 @@ export function Header() {
                 <Link href="/home" className="flex flex-row cursor-pointer">
                   <HiHome className="mr-2 mt-0.5" />
                   Home
+                </Link>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem>
+                <Link href="/enterprise" className="flex flex-row cursor-pointer">
+                  <MdAddBusiness className="mr-2 mt-0.5" />
+                  Empresa
                 </Link>
               </DropdownMenuItem>
 
