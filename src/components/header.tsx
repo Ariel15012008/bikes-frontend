@@ -117,7 +117,6 @@ export function Header() {
                   <span>{user?.name || "Usuário"}</span>
                 </Link>
               </DropdownMenuItem>
-
               <DropdownMenuItem>
                 <Link href="/home" className="flex flex-row cursor-pointer">
                   <HiHome className="mr-2 mt-0.5" />
