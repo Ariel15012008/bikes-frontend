@@ -144,7 +144,6 @@ export default function RegisterPage() {
       setIsLoading(true)
 
       try {
-        // Mantendo a estrutura original da chamada à API, apenas fixando tipo_pessoa como "fisica"
         const response = await api.post("/users/", {
           pessoa: {
             nome_completo: formData.nome_completo,
