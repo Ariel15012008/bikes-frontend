@@ -94,7 +94,7 @@ const Home = () => {
               <input
                 type="search"
                 placeholder="Digite aqui o que você procura..."
-                className="w-full h-[35px] sm:h-[40px] mt-2 sm:mt-3 px-3 sm:px-4 rounded border-none focus:outline-none focus:ring-2 focus:ring-[#09bc8a] text-sm sm:text-base"
+                className="w-full h-[35px] sm:h-[40px] mt-2 sm:mt-3 px-3 sm:px-4 rounded border-none text-sm sm:text-base focus:outline-none"
                 value={searchValue}
                 onChange={(e) => setSearchValue(e.target.value)}
               />

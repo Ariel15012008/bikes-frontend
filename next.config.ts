@@ -1,13 +1,8 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
-};
-
-module.exports = {
-  images: {
-    domains: ['seu-dominio.com'],
-  },
+// next.config.js
+const nextConfig = {
+  experimental: {
+    optimizeCss: false // Desativa o lightningcss
+  }
 }
 
-export default nextConfig;
+module.exports = nextConfig

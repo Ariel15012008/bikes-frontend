@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { useAuth } from "@/contexts/auth-context"; 
+
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,67 +12,44 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { HiCog, HiShoppingBag, HiUsers, HiPhone, HiHome } from "react-icons/hi";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+
+import {
+  HiCog,
+  HiShoppingBag,
+  HiUsers,
+  HiPhone,
+  HiHome,
+  HiInformationCircle,
+} from "react-icons/hi";
 import { BiLogOut } from "react-icons/bi";
 import { IoPersonCircle } from "react-icons/io5";
 import { RxHamburgerMenu } from "react-icons/rx";
 import { MdAddBusiness } from "react-icons/md";
 
 export function Header() {
-  const [user, setUser] = useState<{ name: string; email: string } | null>(
-    null
-  );
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const router = useRouter();
+  const { user, isAuthenticated, logout } = useAuth();
 
-  useEffect(() => {
-    fetch("http://localhost:8000/users/me", {
-      method: "GET",
-      credentials: "include", // ESSENCIAL para cookies HttpOnly
-    })
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Não autenticado");
-        const data = await res.json();
-        setUser({ name: data.nome, email: data.email });
-        setIsAuthenticated(true);
-      })
-      .catch(() => {
-        setUser(null);
-        setIsAuthenticated(false);
-      });
-  }, []);
-
-  const logout = async () => {
-    await fetch("http://localhost:8000/auth/logout", {
-      method: "POST",
-      credentials: "include",
-    });
-
-    setIsAuthenticated(false);
-    setUser(null);
-    router.push("/login");
-  };
+  // FIX: evita mismatch SSR/CSR (hydration)
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   return (
     <header className="fixed top-0 left-0 w-full bg-white shadow-md flex items-center justify-between p-4 z-50">
-      {/* Logo */}
-      <Link href="/home">
-        <Image
-          src="/img/logo.png"
-          alt="Logo do Projeto"
-          width={100}
-          height={50}
-        />
-      </Link>
+      <Image src="/img/logo.png" alt="Logo do Projeto" width={100} height={50} />
 
-      {/* Links centrais (desktop) */}
       <nav className="hidden md:flex space-x-6 text-lg font-medium">
+        <Link href="/home" className="hover:text-gray-600">
+          Página Inicial
+        </Link>
         <Link href="/about" className="hover:text-gray-600">
           Quem somos
-        </Link>
-        <Link href="/home" className="hover:text-gray-600">
-          Comprar
         </Link>
         <Link href="/sell" className="hover:text-gray-600">
           Vender
@@ -81,142 +59,173 @@ export function Header() {
         </Link>
       </nav>
 
-      {/* Ícones do canto direito */}
       <div className="hidden md:flex items-center space-x-4">
         <Link href="/cart">
-          <Image
-            src="/img/carrinho.png"
-            alt="Carrinho"
-            width={27}
-            height={27}
-          />
+          <Image src="/img/carrinho.png" alt="Carrinho" width={27} height={27} />
         </Link>
         <Link href="/favorites">
-          <Image
-            src="/img/favoritos.png"
-            alt="Favoritos"
-            width={27}
-            height={27}
-          />
+          <Image src="/img/favoritos.png" alt="Favoritos" width={27} height={27} />
         </Link>
 
-        {isAuthenticated ? (
+        {/* FIX: enquanto não montou, não decide entre "Entrar" e "Avatar" */}
+        {!mounted ? (
+          <div className="w-[90px] h-[42px]" />
+        ) : isAuthenticated ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Image
-                src="/img/user.png"
-                alt="Usuário"
-                width={30}
-                height={30}
-                className="rounded-full cursor-pointer"
-              />
+              {/* FIX adicional: Trigger deve ser um elemento interativo estável */}
+              <button
+                type="button"
+                className="rounded-full cursor-pointer hover:opacity-80 transition-opacity"
+                aria-label="Menu do usuário"
+              >
+                <Image
+                  src="/img/user.png"
+                  alt="Usuário"
+                  width={30}
+                  height={30}
+                  className="rounded-full"
+                />
+              </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>
-                <Link href="/user" className="flex flex-row cursor-pointer">
-                  <IoPersonCircle className="mr-2  mt-0.5" />
-                  <span>{user?.name || "Usuário"}</span>
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Link href="/home" className="flex flex-row cursor-pointer">
-                  <HiHome className="mr-2 mt-0.5" />
-                  Home
+
+            <DropdownMenuContent
+              align="end"
+              className="bg-white border border-gray-200 shadow-xl rounded-md min-w-[200px]"
+            >
+              <DropdownMenuItem className="hover:bg-gray-50 focus:bg-gray-50">
+                <Link href="/user" className="flex items-center w-full py-1 px-2">
+                  <IoPersonCircle className="mr-2 text-gray-700" size={18} />
+                  <span className="text-gray-800">{user?.name || "Usuário"}</span>
                 </Link>
               </DropdownMenuItem>
 
-              <DropdownMenuItem>
-                <Link href="/enterprise" className="flex flex-row cursor-pointer">
-                  <MdAddBusiness className="mr-2 mt-0.5" />
-                  Empresa
+              <DropdownMenuItem className="hover:bg-gray-50 focus:bg-gray-50">
+                <Link href="/home" className="flex items-center w-full py-1 px-2">
+                  <HiHome className="mr-2 text-gray-700" size={18} />
+                  <span className="text-gray-800">Página Inicial</span>
                 </Link>
               </DropdownMenuItem>
 
-              <DropdownMenuItem>
-                <Link href="/config" className="flex flex-row cursor-pointer">
-                  <HiCog className="mr-2 mt-0.5" />
-                  Configurações
+              <DropdownMenuItem className="hover:bg-gray-50 focus:bg-gray-50">
+                <Link href="/config" className="flex items-center w-full py-1 px-2">
+                  <HiCog className="mr-2 text-gray-700" size={18} />
+                  <span className="text-gray-800">Configurações</span>
                 </Link>
               </DropdownMenuItem>
+
+              <div className="border-t border-gray-200 my-1"></div>
 
               <DropdownMenuItem
                 onClick={logout}
-                className="text-red-600 cursor-pointer"
+                className="hover:bg-red-50 focus:bg-red-50 text-red-600 hover:cursor-pointer"
               >
-                <BiLogOut className="" />
-                Sair
+                <div className="flex items-center w-full py-1 px-2">
+                  <BiLogOut className="mr-2" size={18} />
+                  <span>Sair</span>
+                </div>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
           <Link
             href="/login"
-            className="text-lg font-medium hover:text-gray-600"
+            className="text-lg font-medium hover:text-gray-600 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
           >
             Entrar
           </Link>
         )}
       </div>
 
-      {/* Menu Mobile */}
       <Sheet>
         <SheetTrigger asChild>
           <Button variant="ghost" className="md:hidden scale-150">
             <RxHamburgerMenu />
           </Button>
         </SheetTrigger>
-        <SheetContent side="right" className="w-64">
-          <div className="p-4">
-            <h2 className="text-xl font-semibold mb-4">Menu</h2>
-            <nav className="space-y-4">
-              <Link
-                href="/about"
-                className="flex items-center space-x-2 text-lg"
-              >
-                <HiHome />
-                <span>Quem somos</span>
-              </Link>
+
+        <SheetContent side="right" className="w-64 bg-white">
+          <div className="p-4 h-full flex flex-col">
+            <SheetHeader className="p-0 mb-6">
+              <SheetTitle className="text-xl font-semibold">Menu</SheetTitle>
+            </SheetHeader>
+
+            <nav className="space-y-4 flex-1">
               <Link
                 href="/home"
-                className="flex items-center space-x-2 text-lg"
+                className="flex items-center space-x-3 text-lg py-2 hover:bg-gray-100 rounded px-2"
               >
-                <HiShoppingBag />
-                <span>Comprar</span>
+                <HiHome />
+                <span>Página Inicial</span>
               </Link>
               <Link
+                href="/about"
+                className="flex items-center space-x-3 text-lg py-2 hover:bg-gray-100 rounded px-2"
+              >
+                <HiInformationCircle />
+                <span>Quem somos</span>
+              </Link>
+
+              <Link
                 href="/sell"
-                className="flex items-center space-x-2 text-lg"
+                className="flex items-center space-x-3 text-lg py-2 hover:bg-gray-100 rounded px-2"
               >
                 <HiUsers />
                 <span>Vender</span>
               </Link>
               <Link
                 href="#contact"
-                className="flex items-center space-x-2 text-lg"
+                className="flex items-center space-x-3 text-lg py-2 hover:bg-gray-100 rounded px-2"
               >
                 <HiPhone />
                 <span>Contato</span>
               </Link>
             </nav>
 
-            {isAuthenticated && (
-              <>
-                <div className="border-t my-4"></div>
+            {isAuthenticated ? (
+              <div className="border-t border-gray-200 pt-4">
+                <div className="flex items-center space-x-3 mb-4 px-2">
+                  <IoPersonCircle className="text-2xl text-gray-700" />
+                  <span className="font-medium text-gray-800">{user?.name || "Usuário"}</span>
+                </div>
+
                 <Link
                   href="/user"
-                  className="flex items-center space-x-2 text-lg"
+                  className="flex items-center space-x-3 text-lg py-2 hover:bg-gray-100 rounded px-2 mb-2"
                 >
                   <IoPersonCircle />
                   <span>Perfil</span>
                 </Link>
+
+                <Link href="/config" className="flex items-center w-full py-1 px-2">
+                  <HiCog className="mr-2 text-gray-700" size={18} />
+                  <span className="text-gray-800">Configurações</span>
+                </Link>
+
                 <button
                   onClick={logout}
-                  className="flex items-center space-x-2 text-lg text-red-600 w-full"
+                  className="flex items-center space-x-3 text-lg py-2 hover:bg-red-50 rounded px-2 w-full text-red-600"
                 >
                   <BiLogOut />
                   <span>Sair</span>
                 </button>
-              </>
+              </div>
+            ) : (
+              <div className="border-t border-gray-200 pt-4">
+                <Link
+                  href="/login"
+                  className="flex items-center justify-center text-lg font-medium w-full py-2 rounded-md bg-gray-100 hover:bg-gray-200 transition-colors"
+                >
+                  Entrar
+                </Link>
+
+                <Link
+                  href="/register"
+                  className="mt-2 flex items-center justify-center text-lg font-medium w-full py-2 rounded-md border border-gray-200 hover:bg-gray-50 transition-colors"
+                >
+                  Criar conta
+                </Link>
+              </div>
             )}
           </div>
         </SheetContent>
