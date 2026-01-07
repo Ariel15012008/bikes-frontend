@@ -158,33 +158,40 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    if (currentEndereco.id_pais) {
-      authFetch(
-        `http://localhost:8000/localidades/estados?pais_id=${currentEndereco.id_pais}`
-      )
-        .then((response) => response.json())
-        .then((data) => setStates(data))
-        .catch(() =>
-          toast.error("Erro ao carregar", {
-            description: "Não foi possível carregar a lista de estados",
-          })
-        );
+    if (!currentEndereco.id_pais) {
+      setStates([]);
+      setCities([]);
+      return;
     }
+
+    authFetch(
+      `http://localhost:8000/localidades/estados?pais_id=${currentEndereco.id_pais}`
+    )
+      .then((response) => response.json())
+      .then((data) => setStates(data))
+      .catch(() =>
+        toast.error("Erro ao carregar", {
+          description: "Não foi possível carregar a lista de estados",
+        })
+      );
   }, [currentEndereco.id_pais]);
 
   useEffect(() => {
-    if (currentEndereco.id_estado) {
-      authFetch(
-        `http://localhost:8000/localidades/cidades?estado_id=${currentEndereco.id_estado}`
-      )
-        .then((response) => response.json())
-        .then((data) => setCities(data))
-        .catch(() =>
-          toast.error("Erro ao carregar", {
-            description: "Não foi possível carregar a lista de cidades",
-          })
-        );
+    if (!currentEndereco.id_estado) {
+      setCities([]);
+      return;
     }
+
+    authFetch(
+      `http://localhost:8000/localidades/cidades?estado_id=${currentEndereco.id_estado}`
+    )
+      .then((response) => response.json())
+      .then((data) => setCities(data))
+      .catch(() =>
+        toast.error("Erro ao carregar", {
+          description: "Não foi possível carregar a lista de cidades",
+        })
+      );
   }, [currentEndereco.id_estado]);
 
   useEffect(() => {
@@ -228,7 +235,28 @@ export default function ProfilePage() {
     key: keyof Endereco,
     value: string | boolean
   ) => {
-    setCurrentEndereco((prev) => ({ ...prev, [key]: value }));
+    setCurrentEndereco((prev) => {
+      // Se mudou país: zera estado e cidade
+      if (key === "id_pais") {
+        return {
+          ...prev,
+          id_pais: value as string,
+          id_estado: "",
+          id_cidade: "",
+        };
+      }
+
+      // Se mudou estado: zera cidade
+      if (key === "id_estado") {
+        return {
+          ...prev,
+          id_estado: value as string,
+          id_cidade: "",
+        };
+      }
+
+      return { ...prev, [key]: value };
+    });
   };
 
   const saveEndereco = async (enderecoData: Endereco) => {
@@ -525,39 +553,58 @@ export default function ProfilePage() {
               </div>
               <div>
                 <Label>Estado</Label>
-                <Select
-                  value={currentEndereco.id_estado}
-                  onValueChange={(v) => handleEnderecoChange("id_estado", v)}
-                >
-                  <SelectTrigger className="w-full cursor-pointer">
-                    <SelectValue placeholder="Estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {states.map((e) => (
-                      <SelectItem key={e.id} value={e.id.toString()}>
-                        {e.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+
+                {!currentEndereco.id_pais ? (
+                  // Campo fake desabilitado (não abre nunca)
+                  <div className="h-9 w-full rounded-md border bg-gray-100 px-3 flex items-center text-sm text-gray-500 cursor-not-allowed opacity-70">
+                    Selecione um país primeiro
+                  </div>
+                ) : (
+                  <Select
+                    value={currentEndereco.id_estado}
+                    onValueChange={(v) => handleEnderecoChange("id_estado", v)}
+                  >
+                    <SelectTrigger className="w-full cursor-pointer">
+                      <SelectValue placeholder="Estado" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {states.map((e) => (
+                        <SelectItem key={e.id} value={e.id.toString()}>
+                          {e.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
+
               <div>
                 <Label>Cidade</Label>
-                <Select
-                  value={currentEndereco.id_cidade}
-                  onValueChange={(v) => handleEnderecoChange("id_cidade", v)}
-                >
-                  <SelectTrigger className="w-full cursor-pointer">
-                    <SelectValue placeholder="Cidade" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cities.map((c) => (
-                      <SelectItem key={c.id} value={c.id.toString()}>
-                        {c.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+
+                {!currentEndereco.id_estado ? (
+                  // Campo fake desabilitado (não abre nunca)
+                  <div className="h-9 w-full rounded-md border bg-gray-100 px-3 flex items-center text-sm text-gray-500 cursor-not-allowed opacity-70">
+                    Selecione um estado primeiro
+                  </div>
+                ) : (
+                  <Select
+                    value={currentEndereco.id_cidade}
+                    onValueChange={(v) => handleEnderecoChange("id_cidade", v)}
+                  >
+                    <SelectTrigger className="w-full cursor-pointer">
+                      <SelectValue placeholder="Cidade" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {cities.map((c) => (
+                        <SelectItem key={c.id} value={c.id.toString()}>
+                          {c.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
             </div>
 

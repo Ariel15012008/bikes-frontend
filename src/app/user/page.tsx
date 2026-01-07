@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { Input } from "@/components/ui/input";
@@ -97,12 +97,9 @@ export default function ProfilePage() {
   const [showArrow, setShowArrow] = useState(false);
   const router = useRouter();
 
-  // Funções memoizadas
   const scrollToLocations = useCallback(() => {
     const element = document.getElementById("saved-locations");
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
+    if (element) element.scrollIntoView({ behavior: "smooth" });
   }, []);
 
   const formatPhone = useCallback((value: string): string => {
@@ -115,12 +112,8 @@ export default function ProfilePage() {
 
   const formatCEP = useCallback((value: string): string => {
     const numbers = value.replace(/\D/g, "");
-    if (numbers.length <= 5) {
-      return numbers;
-    }
-    if (numbers.length <= 8) {
-      return `${numbers.slice(0, 5)}-${numbers.slice(5)}`;
-    }
+    if (numbers.length <= 5) return numbers;
+    if (numbers.length <= 8) return `${numbers.slice(0, 5)}-${numbers.slice(5)}`;
     return `${numbers.slice(0, 5)}-${numbers.slice(5, 8)}`;
   }, []);
 
@@ -140,12 +133,9 @@ export default function ProfilePage() {
     [formatCEP]
   );
 
-  // Carregamento de dados otimizado
   const loadCountries = useCallback(async () => {
     try {
-      const response = await authFetch(
-        "http://localhost:8000/localidades/paises"
-      );
+      const response = await authFetch("http://localhost:8000/localidades/paises");
       const data = await response.json();
       setCountries(data);
     } catch {
@@ -185,7 +175,6 @@ export default function ProfilePage() {
     }
   }, []);
 
-  // Efeitos otimizados
   useEffect(() => {
     authFetch("http://localhost:8000/auth/refresh-token", {
       method: "POST",
@@ -198,19 +187,25 @@ export default function ProfilePage() {
     loadCountries();
   }, [loadCountries]);
 
+  // limpa e carrega estados conforme país
   useEffect(() => {
-    if (currentEndereco.id_pais) {
-      loadStates(currentEndereco.id_pais);
+    if (!currentEndereco.id_pais) {
+      setStates([]);
+      setCities([]);
+      return;
     }
+    loadStates(currentEndereco.id_pais);
   }, [currentEndereco.id_pais, loadStates]);
 
+  // limpa e carrega cidades conforme estado
   useEffect(() => {
-    if (currentEndereco.id_estado) {
-      loadCities(currentEndereco.id_estado);
+    if (!currentEndereco.id_estado) {
+      setCities([]);
+      return;
     }
+    loadCities(currentEndereco.id_estado);
   }, [currentEndereco.id_estado, loadCities]);
 
-  // Carregamento inicial de dados
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -232,7 +227,7 @@ export default function ProfilePage() {
         });
 
         setEnderecos(enderecosData.enderecos || []);
-      } catch (error) {
+      } catch {
         toast.error("Erro ao carregar", {
           description: "Não foi possível carregar seus dados de perfil",
         });
@@ -245,7 +240,6 @@ export default function ProfilePage() {
     fetchData();
   }, [formatPhone, router]);
 
-  // Handlers otimizados
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const { name, value } = e.target;
@@ -255,14 +249,36 @@ export default function ProfilePage() {
     [formatPhone]
   );
 
+  // IMPORTANT: zera dependências e limpa listas ao trocar país/estado
   const handleEnderecoChange = useCallback(
     (key: keyof Endereco, value: string | boolean) => {
-      setCurrentEndereco((prev) => ({ ...prev, [key]: value }));
+      setCurrentEndereco((prev) => {
+        if (key === "id_pais") {
+          setStates([]);
+          setCities([]);
+          return {
+            ...prev,
+            id_pais: value as string,
+            id_estado: "",
+            id_cidade: "",
+          };
+        }
+
+        if (key === "id_estado") {
+          setCities([]);
+          return {
+            ...prev,
+            id_estado: value as string,
+            id_cidade: "",
+          };
+        }
+
+        return { ...prev, [key]: value };
+      });
     },
     []
   );
 
-  // Operações de endereço
   const saveEndereco = useCallback(
     async (enderecoData: Endereco) => {
       try {
@@ -297,9 +313,7 @@ export default function ProfilePage() {
           "http://localhost:8000/users/create-endereco",
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(requestBody),
           }
         );
@@ -317,7 +331,6 @@ export default function ProfilePage() {
 
         setShowArrow(!!enderecoData.complemento);
 
-        // Atualiza a lista de endereços
         const enderecosResponse = await authFetch(
           "http://localhost:8000/users/enderecos"
         );
@@ -339,11 +352,7 @@ export default function ProfilePage() {
   );
 
   const addEndereco = useCallback(async () => {
-    if (
-      !currentEndereco.id_pais ||
-      !currentEndereco.id_estado ||
-      !currentEndereco.id_cidade
-    ) {
+    if (!currentEndereco.id_pais || !currentEndereco.id_estado || !currentEndereco.id_cidade) {
       toast.error("Dados obrigatórios", {
         description: "Preencha país, estado e cidade",
       });
@@ -364,6 +373,9 @@ export default function ProfilePage() {
         bairro: "",
         endereco_primario: false,
       });
+      setStates([]);
+      setCities([]);
+      setShowArrow(false);
     }
   }, [currentEndereco, saveEndereco]);
 
@@ -375,9 +387,7 @@ export default function ProfilePage() {
       try {
         const response = await authFetch("http://localhost:8000/users/update", {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             pessoa: {
               nome_completo: formData.nome,
@@ -417,23 +427,17 @@ export default function ProfilePage() {
     try {
       const response = await authFetch(
         `http://localhost:8000/users/endereco/${id}/set-primary`,
-        {
-          method: "PUT",
-        }
+        { method: "PUT" }
       );
 
-      if (!response.ok) {
-        throw new Error("Falha ao definir endereço como primário");
-      }
+      if (!response.ok) throw new Error("Falha ao definir endereço como primário");
 
-      const enderecosResponse = await authFetch(
-        "http://localhost:8000/users/enderecos"
-      );
+      const enderecosResponse = await authFetch("http://localhost:8000/users/enderecos");
       const enderecosData = await enderecosResponse.json();
       setEnderecos(enderecosData.enderecos || []);
 
       toast.success("Endereço principal atualizado!");
-    } catch (error) {
+    } catch {
       toast.error("Erro", {
         description: "Não foi possível definir este endereço como principal",
       });
@@ -442,25 +446,18 @@ export default function ProfilePage() {
 
   const deleteAddress = useCallback(async (id: number) => {
     try {
-      const response = await authFetch(
-        `http://localhost:8000/endereco/delete/${id}`,
-        {
-          method: "DELETE",
-        }
-      );
+      const response = await authFetch(`http://localhost:8000/endereco/delete/${id}`, {
+        method: "DELETE",
+      });
 
-      if (!response.ok) {
-        throw new Error("Falha ao deletar endereço");
-      }
+      if (!response.ok) throw new Error("Falha ao deletar endereço");
 
-      const enderecosResponse = await authFetch(
-        "http://localhost:8000/users/enderecos"
-      );
+      const enderecosResponse = await authFetch("http://localhost:8000/users/enderecos");
       const enderecosData = await enderecosResponse.json();
       setEnderecos(enderecosData.enderecos || []);
 
       toast.success("Endereço deletado com sucesso!");
-    } catch (error) {
+    } catch {
       toast.error("Erro", {
         description: "Não foi possível deletar este endereço",
       });
@@ -473,8 +470,7 @@ export default function ProfilePage() {
 
       if (primaryAddress && primaryAddress.id === id && enderecos.length > 1) {
         toast.error("Não é possível excluir o endereço principal", {
-          description:
-            "Defina outro endereço como principal antes de excluir este",
+          description: "Defina outro endereço como principal antes de excluir este",
         });
         return;
       }
@@ -491,20 +487,20 @@ export default function ProfilePage() {
                   deleteAddress(id);
                   toast.dismiss(t);
                 }}
-                className="bg-[#09bc8a] hover:bg-[#07a77a] text-white px-3 py-1 rounded-md text-sm font-medium">
+                className="bg-[#09bc8a] hover:bg-[#07a77a] text-white px-3 py-1 rounded-md text-sm font-medium"
+              >
                 Confirmar
               </button>
               <button
                 onClick={() => toast.dismiss(t)}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1 rounded-md text-sm font-medium">
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-3 py-1 rounded-md text-sm font-medium"
+              >
                 Cancelar
               </button>
             </div>
           </div>
         ),
-        {
-          duration: 10000,
-        }
+        { duration: 10000 }
       );
     },
     [deleteAddress, enderecos]
@@ -530,13 +526,11 @@ export default function ProfilePage() {
                 alt="Foto de perfil"
                 fill
                 className="object-cover"
-                priority // Adicionado para carregamento prioritário da imagem
+                priority
               />
             </div>
             <p className="text-lg md:text-xl font-semibold">{formData.nome}</p>
-            <Button
-              variant="outline"
-              className="text-sm md:text-base cursor-pointer">
+            <Button variant="outline" className="text-sm md:text-base cursor-pointer">
               Trocar foto
             </Button>
           </div>
@@ -589,7 +583,8 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 cursor-pointer">
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 cursor-pointer"
+                  >
                     {showPassword ? <IoEyeOffSharp /> : <IoEyeSharp />}
                   </button>
                 </div>
@@ -598,14 +593,16 @@ export default function ProfilePage() {
               <Button
                 type="button"
                 onClick={() => setShowLocationForm(true)}
-                className="w-full cursor-pointer">
+                className="w-full cursor-pointer"
+              >
                 Adicionar informação de localização
               </Button>
 
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="h-12 w-full bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white cursor-pointer">
+                className="h-12 w-full bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white cursor-pointer"
+              >
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
@@ -620,7 +617,8 @@ export default function ProfilePage() {
                   <Label>País</Label>
                   <Select
                     value={currentEndereco.id_pais}
-                    onValueChange={(v) => handleEnderecoChange("id_pais", v)}>
+                    onValueChange={(v) => handleEnderecoChange("id_pais", v)}
+                  >
                     <SelectTrigger className="w-full cursor-pointer">
                       <SelectValue placeholder="País" />
                     </SelectTrigger>
@@ -633,39 +631,59 @@ export default function ProfilePage() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* ESTADO: bloqueia de forma garantida (não renderiza Select) */}
                 <div>
                   <Label>Estado</Label>
-                  <Select
-                    value={currentEndereco.id_estado}
-                    onValueChange={(v) => handleEnderecoChange("id_estado", v)}>
-                    <SelectTrigger className="w-full cursor-pointer">
-                      <SelectValue placeholder="Estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {states.map((e) => (
-                        <SelectItem key={e.id} value={e.id.toString()}>
-                          {e.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+
+                  {!currentEndereco.id_pais ? (
+                    <div className="h-9 w-full rounded-md border bg-gray-100 px-3 flex items-center text-sm text-gray-500 cursor-not-allowed opacity-70">
+                      Selecione um país primeiro
+                    </div>
+                  ) : (
+                    <Select
+                      value={currentEndereco.id_estado}
+                      onValueChange={(v) => handleEnderecoChange("id_estado", v)}
+                    >
+                      <SelectTrigger className="w-full cursor-pointer">
+                        <SelectValue placeholder="Estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {states.map((e) => (
+                          <SelectItem key={e.id} value={e.id.toString()}>
+                            {e.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
+
+                {/* CIDADE: bloqueia de forma garantida (não renderiza Select) */}
                 <div>
                   <Label>Cidade</Label>
-                  <Select
-                    value={currentEndereco.id_cidade}
-                    onValueChange={(v) => handleEnderecoChange("id_cidade", v)}>
-                    <SelectTrigger className="w-full cursor-pointer">
-                      <SelectValue placeholder="Cidade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {cities.map((c) => (
-                        <SelectItem key={c.id} value={c.id.toString()}>
-                          {c.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+
+                  {!currentEndereco.id_estado ? (
+                    <div className="h-9 w-full rounded-md border bg-gray-100 px-3 flex items-center text-sm text-gray-500 cursor-not-allowed opacity-70">
+                      Selecione um estado primeiro
+                    </div>
+                  ) : (
+                    <Select
+                      value={currentEndereco.id_cidade}
+                      onValueChange={(v) => handleEnderecoChange("id_cidade", v)}
+                    >
+                      <SelectTrigger className="w-full cursor-pointer">
+                        <SelectValue placeholder="Cidade" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {cities.map((c) => (
+                          <SelectItem key={c.id} value={c.id.toString()}>
+                            {c.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               </div>
 
@@ -684,9 +702,7 @@ export default function ProfilePage() {
                   <Label>Bairro</Label>
                   <Input
                     value={currentEndereco.bairro}
-                    onChange={(e) =>
-                      handleEnderecoChange("bairro", e.target.value)
-                    }
+                    onChange={(e) => handleEnderecoChange("bairro", e.target.value)}
                     placeholder="Bairro"
                     className="cursor-pointer"
                   />
@@ -695,9 +711,7 @@ export default function ProfilePage() {
                   <Label>Logradouro</Label>
                   <Input
                     value={currentEndereco.logradouro}
-                    onChange={(e) =>
-                      handleEnderecoChange("logradouro", e.target.value)
-                    }
+                    onChange={(e) => handleEnderecoChange("logradouro", e.target.value)}
                     placeholder="Logradouro"
                     className="cursor-pointer"
                   />
@@ -715,17 +729,13 @@ export default function ProfilePage() {
                   <Label>Complemento</Label>
                   <Input
                     value={currentEndereco.complemento || ""}
-                    onChange={(e) =>
-                      handleEnderecoChange("complemento", e.target.value)
-                    }
+                    onChange={(e) => handleEnderecoChange("complemento", e.target.value)}
                     placeholder="Complemento (opcional)"
                     className={`mt-1 cursor-pointer ${showArrow ? "mb-6" : ""}`}
                   />
                   {showArrow && (
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 sm:left-[100%] sm:translate-x-0">
-                      <button
-                        onClick={scrollToLocations}
-                        className="animate-bounce cursor-pointer">
+                      <button onClick={scrollToLocations} className="animate-bounce cursor-pointer">
                         <FaArrowDown className="text-[#0f9972] text-3xl" />
                       </button>
                     </div>
@@ -736,16 +746,14 @@ export default function ProfilePage() {
                     id="endereco-primario"
                     checked={currentEndereco.endereco_primario}
                     onCheckedChange={(checked) =>
-                      handleEnderecoChange(
-                        "endereco_primario",
-                        checked as boolean
-                      )
+                      handleEnderecoChange("endereco_primario", checked as boolean)
                     }
                     className="cursor-pointer"
                   />
                   <label
                     htmlFor="endereco-primario"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
                     Definir como endereço principal
                   </label>
                 </div>
@@ -755,13 +763,15 @@ export default function ProfilePage() {
                 <Button
                   onClick={addEndereco}
                   className="w-full cursor-pointer"
-                  disabled={isSavingLocation}>
+                  disabled={isSavingLocation}
+                >
                   {isSavingLocation ? (
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin cursor-pointer" />
                   ) : (
                     "Adicionar localização"
                   )}
                 </Button>
+
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -776,19 +786,20 @@ export default function ProfilePage() {
                       bairro: "",
                       endereco_primario: false,
                     });
+                    setStates([]);
+                    setCities([]);
                     setShowLocationForm(false);
                     setShowArrow(false);
                   }}
-                  className="w-full cursor-pointer">
+                  className="w-full cursor-pointer"
+                >
                   Voltar
                 </Button>
               </div>
 
               {enderecos.length > 0 && (
                 <div id="saved-locations" className="pt-8 space-y-4">
-                  <h3 className="text-lg font-semibold">
-                    Endereços cadastrados
-                  </h3>
+                  <h3 className="text-lg font-semibold">Endereços cadastrados</h3>
                   {enderecos.map((e, i) => (
                     <div
                       key={e.id}
@@ -796,27 +807,28 @@ export default function ProfilePage() {
                         e.endereco_primario
                           ? "border-[#09bc8a] bg-[#09bc8a]/10"
                           : "border-gray-200 bg-gray-50"
-                      }`}>
+                      }`}
+                    >
                       <div className="flex justify-between items-start">
                         <p className="font-semibold">
                           {i + 1} -{" "}
-                          {e.endereco_primario
-                            ? "Endereço principal"
-                            : "Endereço secundário"}
+                          {e.endereco_primario ? "Endereço principal" : "Endereço secundário"}
                         </p>
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => router.push(`/editAddress/${e.id}`)}
-                            className="cursor-pointer">
+                            className="cursor-pointer"
+                          >
                             <FaRegEdit className="size-4" />
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => confirmDelete(e.id)}
-                            className="cursor-pointer text-red-500 hover:text-red-700">
+                            className="cursor-pointer text-red-500 hover:text-red-700"
+                          >
                             <FaTrash className="size-4" />
                           </Button>
                         </div>
