@@ -1,29 +1,68 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { FaMagnifyingGlass, FaArrowRightToBracket } from 'react-icons/fa6';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  FaMagnifyingGlass,
+  FaArrowRightToBracket,
+  FaFilter,
+  FaChevronDown,
+} from "react-icons/fa6";
 import { Header } from "../../components/header";
 import { Footer } from "../../components/footer";
-import Image from 'next/image';
-import Link from 'next/link';
+import Image from "next/image";
+import Link from "next/link";
 import { authFetch } from "../utils/authFetch";
 
 const Home = () => {
+  const router = useRouter();
+
   useEffect(() => {
     async function renewToken() {
-        const res = await authFetch("http://localhost:8000/auth/refresh-token", {
-          method: "POST",
-        });
-        if (res.ok) {
-          const data = await res.json();
-        }
+      const res = await authFetch("http://localhost:8000/auth/refresh-token", {
+        method: "POST",
+      });
+      if (res.ok) {
+        await res.json();
+      }
     }
-
     renewToken();
   }, []);
 
   const [activeTab, setActiveTab] = useState("tab1");
   const [searchValue, setSearchValue] = useState("");
+
+  // Dropdown filtros
+  const [showFilters, setShowFilters] = useState(false);
+  const filterWrapRef = useRef<HTMLDivElement | null>(null);
+
+  const [filters, setFilters] = useState({
+    categoria: "",
+    marca: "",
+    condicao: "",
+    precoMin: "",
+    precoMax: "",
+    localizacao: "",
+  });
+
+  // Dados simulados para filtros
+  const marcas = [
+    { id: "1", name: "Caloi" },
+    { id: "2", name: "Monark" },
+    { id: "3", name: "Soul" },
+    { id: "4", name: "Sense" },
+    { id: "5", name: "Scott" },
+    { id: "6", name: "Trek" },
+  ];
+
+  const categorias = [
+    { id: "1", name: "Mountain Bike" },
+    { id: "2", name: "Speed" },
+    { id: "3", name: "Urbana" },
+    { id: "4", name: "Elétrica" },
+    { id: "5", name: "Infantil" },
+    { id: "6", name: "Dobrável" },
+  ];
 
   const cardSection2Data = [
     { image: "/img/card1.png", link: "/page1" },
@@ -43,12 +82,74 @@ const Home = () => {
     { image: "/img/style.png", link: "/oferta6", title: "SPEED" },
   ];
 
+  const activeFiltersCount = useMemo(() => {
+    return Object.values(filters).filter((v) => String(v ?? "").trim() !== "")
+      .length;
+  }, [filters]);
+
+  const handleSearch = () => {
+    const params = new URLSearchParams();
+
+    params.set("tipo", activeTab === "tab1" ? "bikes" : "pecas");
+
+    if (searchValue.trim()) params.set("q", searchValue.trim());
+    if (filters.categoria) params.set("categoria", filters.categoria);
+    if (filters.marca) params.set("marca", filters.marca);
+    if (filters.condicao) params.set("condicao", filters.condicao);
+    if (filters.precoMin) params.set("min", filters.precoMin);
+    if (filters.precoMax) params.set("max", filters.precoMax);
+    if (filters.localizacao.trim())
+      params.set("localizacao", filters.localizacao.trim());
+
+    router.push(`/busca?${params.toString()}`);
+    setShowFilters(false);
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      categoria: "",
+      marca: "",
+      condicao: "",
+      precoMin: "",
+      precoMax: "",
+      localizacao: "",
+    });
+  };
+
+  // Fecha dropdown ao clicar fora + ESC
+  useEffect(() => {
+    const onMouseDown = (e: MouseEvent) => {
+      if (!showFilters) return;
+      const el = filterWrapRef.current;
+      if (!el) return;
+      if (!el.contains(e.target as Node)) setShowFilters(false);
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!showFilters) return;
+      if (e.key === "Escape") setShowFilters(false);
+    };
+
+    document.addEventListener("mousedown", onMouseDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [showFilters]);
+
   return (
     <div className="font-sans m-0 p-0">
-      <Header />
+      {/* IMPORTANTE:
+          Garanta no seu Header um z-index alto (ex: z-[2000]) e position fixed/sticky.
+          Aqui eu só estou colocando o Header no topo visualmente e ajustando os z-index abaixo.
+      */}
+      <div className="relative z-[2000]">
+        <Header />
+      </div>
 
       <main className="mt-[60px]">
-        {/* Section 1 - Hero com barra de pesquisa */}
+        {/* Section 1 - Hero com barra de pesquisa e filtros */}
         <section id="home" className="relative max-md:mb-28 md:mb-32">
           <div className="relative w-full h-[300px] sm:h-[400px] md:h-[500px]">
             <Image
@@ -58,89 +159,359 @@ const Home = () => {
               className="object-cover"
               priority
             />
+
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4">
               <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-bold font-gill-sans mb-4 sm:mb-6 md:mb-8">
                 Seu principal marketplace de bikes
               </h1>
             </div>
-            
-            {/* Barra de pesquisa ajustada */}
-            <div className="absolute -bottom-12 sm:-bottom-16 left-1/2 transform -translate-x-1/2 bg-white rounded-xl shadow-lg w-[90%] sm:w-[700px] md:w-[750px] h-[100px] sm:h-[120px] ">
-              <div className="flex w-full h-[35px] sm:h-[40px] rounded-tl-lg overflow-hidden">
-                <button
-                  className={`flex-1 font-bold text-sm sm:text-base transition-colors ${
-                    activeTab === "tab1"
-                      ? "bg-[#09bc8a] text-white"
-                      : "bg-[#f5f5f5] text-[#868686] hover:opacity-90"
-                  }`}
-                  onClick={() => setActiveTab("tab1")}>
-                  Bikes
-                </button>
-                <button
-                  className={`flex-1 font-bold text-sm sm:text-base transition-colors ${
-                    activeTab === "tab2"
-                      ? "bg-[#09bc8a] text-white"
-                      : "bg-[#f5f5f5] text-[#868686] hover:opacity-90"
-                  }`}
-                  onClick={() => setActiveTab("tab2")}>
-                  Peças e acessórios
-                </button>
-                <button
-                  className="w-[100px] sm:w-[150px] bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white font-bold flex items-center justify-center gap-1 sm:gap-2 hover:from-[#08ab7d] hover:to-[#0a172e] rounded-tr-lg text-sm sm:text-base">
-                  <FaMagnifyingGlass className="text-lg sm:text-xl" />
-                  <span>Pesquisar</span>
-                </button>
+
+            {/* Barra de pesquisa (z menor que o Header) */}
+            {/* ALTERAÇÃO ÚNICA: cria “respiro” nas bordas sem mexer no filtro */}
+            <div className="absolute -bottom-12 sm:-bottom-16 left-0 right-0 z-[50] px-4 sm:px-6">
+              <div className="bg-white rounded-xl shadow-lg w-full max-w-[750px] mx-auto">
+                {/* Abas + pesquisar */}
+                <div className="flex w-full h-[35px] sm:h-[40px] rounded-tl-lg overflow-hidden">
+                  <button
+                    className={`flex-1 font-bold text-sm sm:text-base transition-colors ${
+                      activeTab === "tab1"
+                        ? "bg-[#09bc8a] text-white"
+                        : "bg-[#f5f5f5] text-[#868686] hover:opacity-90"
+                    }`}
+                    onClick={() => setActiveTab("tab1")}
+                  >
+                    Bikes
+                  </button>
+
+                  <button
+                    className={`flex-1 font-bold text-sm sm:text-base transition-colors ${
+                      activeTab === "tab2"
+                        ? "bg-[#09bc8a] text-white"
+                        : "bg-[#f5f5f5] text-[#868686] hover:opacity-90"
+                    }`}
+                    onClick={() => setActiveTab("tab2")}
+                  >
+                    Peças e acessórios
+                  </button>
+
+                  <button
+                    onClick={handleSearch}
+                    className="w-[110px] sm:w-[160px] bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white font-bold flex items-center justify-center gap-2 hover:from-[#08ab7d] hover:to-[#0a172e] rounded-tr-lg text-sm sm:text-base"
+                  >
+                    <FaMagnifyingGlass className="text-lg sm:text-xl" />
+                    <span>Pesquisar</span>
+                  </button>
+                </div>
+
+                {/* Input + botão filtro */}
+                <div className="relative p-3 sm:p-4">
+                  <div className="flex gap-2 items-center">
+                    <div className="flex-1 relative">
+                      <input
+                        type="search"
+                        placeholder="Digite aqui o que você procura..."
+                        className="w-full h-[40px] sm:h-[44px] px-4 rounded-lg border border-gray-200 text-sm sm:text-base focus:outline-none  bg-white"
+                        value={searchValue}
+                        onChange={(e) => setSearchValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSearch();
+                        }}
+                      />
+                    </div>
+
+                    {/* Wrapper para dropdown (sem z exagerado) */}
+                    <div ref={filterWrapRef} className="relative">
+                      <button
+                        type="button"
+                        onClick={() => setShowFilters((v) => !v)}
+                        className={`h-[40px] sm:h-[44px] px-3 sm:px-4 rounded-lg border text-sm font-semibold flex items-center gap-2 transition-colors
+                        ${
+                          showFilters
+                            ? "border-[#09bc8a] text-[#09bc8a] bg-[#09bc8a]/5"
+                            : "border-gray-200 text-gray-700 bg-white hover:bg-gray-50"
+                        }`}
+                        aria-label="Filtros"
+                        title="Filtros"
+                      >
+                        <FaFilter className="w-4 h-4" />
+                        <span className="hidden sm:inline">Filtros</span>
+
+                        {activeFiltersCount > 0 && (
+                          <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-[#09bc8a] text-white text-[11px] font-bold">
+                            {activeFiltersCount}
+                          </span>
+                        )}
+
+                        <FaChevronDown
+                          className={`w-3 h-3 transition-transform ${
+                            showFilters ? "rotate-180" : ""
+                          }`}
+                        />
+                      </button>
+
+                      {/* Dropdown (z menor que o Header) */}
+                      {showFilters && (
+                        <div className="absolute -right-3 mt-2 z-[60] w-[290px] sm:w-[400px]">
+                          <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden">
+                            <div className="px-5 py-4 flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="w-9 h-9 rounded-xl bg-[#09bc8a]/10 flex items-center justify-center">
+                                  <FaFilter className="text-[#09bc8a]" />
+                                </div>
+                                <div>
+                                  <p className="text-[15px] font-extrabold text-[#0c1b33] leading-tight">
+                                    Filtros
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    Refine sua busca rapidamente
+                                  </p>
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={clearFilters}
+                                className="text-sm font-semibold text-[#09bc8a] hover:underline"
+                              >
+                                Limpar
+                              </button>
+                            </div>
+
+                            <div className="px-5 pb-5">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-xs font-bold text-gray-700 mb-2">
+                                    Categoria
+                                  </label>
+                                  <select
+                                    value={filters.categoria}
+                                    onChange={(e) =>
+                                      setFilters({
+                                        ...filters,
+                                        categoria: e.target.value,
+                                      })
+                                    }
+                                    className="w-full h-[42px] px-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09bc8a] focus:border-transparent bg-white"
+                                  >
+                                    <option value="">Todas</option>
+                                    {categorias.map((categoria) => (
+                                      <option
+                                        key={categoria.id}
+                                        value={categoria.id}
+                                      >
+                                        {categoria.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-bold text-gray-700 mb-2">
+                                    Marca
+                                  </label>
+                                  <select
+                                    value={filters.marca}
+                                    onChange={(e) =>
+                                      setFilters({
+                                        ...filters,
+                                        marca: e.target.value,
+                                      })
+                                    }
+                                    className="w-full h-[42px] px-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09bc8a] focus:border-transparent bg-white"
+                                  >
+                                    <option value="">Todas</option>
+                                    {marcas.map((marca) => (
+                                      <option key={marca.id} value={marca.id}>
+                                        {marca.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-bold text-gray-700 mb-2">
+                                    Condição
+                                  </label>
+                                  <select
+                                    value={filters.condicao}
+                                    onChange={(e) =>
+                                      setFilters({
+                                        ...filters,
+                                        condicao: e.target.value,
+                                      })
+                                    }
+                                    className="w-full h-[42px] px-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09bc8a] focus:border-transparent bg-white"
+                                  >
+                                    <option value="">Todas</option>
+                                    <option value="nova">Nova</option>
+                                    <option value="seminova">Seminova</option>
+                                    <option value="usada">Usada</option>
+                                  </select>
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-bold text-gray-700 mb-2">
+                                    Localização
+                                  </label>
+                                  <input
+                                    type="text"
+                                    placeholder="Cidade, Estado"
+                                    value={filters.localizacao}
+                                    onChange={(e) =>
+                                      setFilters({
+                                        ...filters,
+                                        localizacao: e.target.value,
+                                      })
+                                    }
+                                    className="w-full h-[42px] px-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09bc8a] focus:border-transparent"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-bold text-gray-700 mb-2">
+                                    Preço mín.
+                                  </label>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+                                      R$
+                                    </span>
+                                    <input
+                                      type="number"
+                                      placeholder="0"
+                                      value={filters.precoMin}
+                                      onChange={(e) =>
+                                        setFilters({
+                                          ...filters,
+                                          precoMin: e.target.value,
+                                        })
+                                      }
+                                      className="w-full h-[42px] pl-10 pr-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09bc8a] focus:border-transparent"
+                                    />
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-bold text-gray-700 mb-2">
+                                    Preço máx.
+                                  </label>
+                                  <div className="relative">
+                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+                                      R$
+                                    </span>
+                                    <input
+                                      type="number"
+                                      placeholder="Qualquer"
+                                      value={filters.precoMax}
+                                      onChange={(e) =>
+                                        setFilters({
+                                          ...filters,
+                                          precoMax: e.target.value,
+                                        })
+                                      }
+                                      className="w-full h-[42px] pl-10 pr-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-[#09bc8a] focus:border-transparent"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-600">
+                                    {activeFiltersCount} filtro(s) ativo(s)
+                                  </span>
+                                  {activeFiltersCount > 0 && (
+                                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-[#09bc8a]/10 text-[#09bc8a] text-[11px] font-bold">
+                                      Ativo
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowFilters(false)}
+                                    className="px-3 py-2 rounded-xl text-sm font-semibold border border-gray-200 hover:bg-gray-50"
+                                  >
+                                    Fechar
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={handleSearch}
+                                    className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] hover:opacity-90 transition-opacity"
+                                  >
+                                    Aplicar
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2 text-[12px] text-gray-500 flex items-center justify-between">
+                    <span>
+                      Dica: pressione{" "}
+                      <span className="font-semibold">Enter</span> para pesquisar
+                    </span>
+                    {activeFiltersCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={clearFilters}
+                        className="text-[#09bc8a] font-semibold hover:underline"
+                      >
+                        Limpar filtros
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
-              <input
-                type="search"
-                placeholder="Digite aqui o que você procura..."
-                className="w-full h-[35px] sm:h-[40px] mt-2 sm:mt-3 px-3 sm:px-4 rounded border-none text-sm sm:text-base focus:outline-none"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-              />
             </div>
           </div>
         </section>
-{/* Section 2 - Escolha por marca (versão final) */}
-<section className="mb-10  md:mb-16 px-4 sm:px-5 text-center">
-  <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 mt-4 sm:mb-5">
-    Escolha por marca
-  </h1>
-  <div className="flex justify-center xl:pr-48">
-    <div className="grid grid-cols-3 p-2 sm:gap-5 max-sm:gap-2 w-full max-w-[700px] relative">
-      {/* 6 cards de marcas (2 linhas de 3 colunas) - Mantido original */}
-      {cardSection2Data.map((card, index) => (
-        <Link
-          href={card.link}
-          key={index}
-          className="w-full h-[120px] sm:h-[160px] mx-auto">
-          <div className="bg-white rounded-md shadow-md relative gap-3 w-full h-full overflow-hidden">
-            <Image
-              src={card.image}
-              alt={`Marca ${index + 1}`}
-              fill
-              className="object-contain p-3 sm:p-4"
-            />
+
+        {/* Section 2 - Escolha por marca */}
+        <section className="mb-10  md:mb-16 px-4 sm:px-5 text-center">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 mt-4 sm:mb-5">
+            Escolha por marca
+          </h1>
+          <div className="flex justify-center xl:pr-48">
+            <div className="grid grid-cols-3 p-2 sm:gap-5 max-sm:gap-2 w-full max-w-[700px] relative">
+              {cardSection2Data.map((card, index) => (
+                <Link
+                  href={card.link}
+                  key={index}
+                  className="w-full h-[120px] sm:h-[160px] mx-auto"
+                >
+                  <div className="bg-white rounded-md shadow-md relative gap-3 w-full h-full overflow-hidden">
+                    <Image
+                      src={card.image}
+                      alt={`Marca ${index + 1}`}
+                      fill
+                      className="object-contain p-3 sm:p-4"
+                    />
+                  </div>
+                </Link>
+              ))}
+
+              <div
+                className="hidden min-[1230px]:block absolute -right-4 top-0 
+                              w-[120px] sm:w-[150px] md:w-[180px] lg:w-[220px] 
+                              h-[250px] sm:h-[280px] md:h-[330px] lg:h-[360px] 
+                              bg-gray-100 rounded-md shadow-md items-center justify-center 
+                              transform translate-x-full"
+              >
+                <h5 className="text-base sm:text-lg font-bold">Anúncio</h5>
+              </div>
+
+              <div className="min-[1230px]:hidden w-auto h-[120px] mt-6 mr-2 bg-gray-100 rounded-md shadow-md flex items-center justify-center col-span-3">
+                <h5 className="text-base font-bold">Anúncio</h5>
+              </div>
+            </div>
           </div>
-        </Link>
-      ))}
-      
-      {/* Anúncio DESKTOP (acima de 1260px) - Mantido original */}
-      <div className="hidden min-[1230px]:block absolute -right-4 top-0 
-                      w-[120px] sm:w-[150px] md:w-[180px] lg:w-[220px] 
-                      h-[250px] sm:h-[280px] md:h-[330px] lg:h-[360px] 
-                      bg-gray-100 rounded-md shadow-md items-center justify-center 
-                      transform translate-x-full">
-        <h5 className="text-base sm:text-lg font-bold">Anúncio</h5>
-      </div>
-      
-      {/* Anúncio MOBILE (abaixo de 1260px) - Nova versão */}
-      <div className="min-[1230px]:hidden w-auto h-[120px] mt-6 mr-2 bg-gray-100 rounded-md shadow-md flex items-center justify-center col-span-3">
-        <h5 className="text-base font-bold">Anúncio</h5>
-      </div>
-    </div>
-  </div>
-</section>
+        </section>
 
         {/* Section 3 - Destaque da semana */}
         <section className="mb-10 md:mb-16 text-center px-4">
@@ -151,7 +522,8 @@ const Home = () => {
             {[1, 2].map((_, i) => (
               <div
                 key={i}
-                className="bg-white rounded-md shadow-md w-full max-w-[450px] h-[350px] sm:h-[400px] p-3 sm:p-4 flex flex-col">
+                className="bg-white rounded-md shadow-md w-full max-w-[450px] h-[350px] sm:h-[400px] p-3 sm:p-4 flex flex-col"
+              >
                 <div className="relative w-full h-[150px] sm:h-[200px]">
                   <Image
                     src="/img/highlight.png"
@@ -161,14 +533,17 @@ const Home = () => {
                   />
                 </div>
                 <div className="flex justify-between items-center mt-3 sm:mt-4">
-                  <h5 className="text-lg sm:text-xl font-bold">Garmin Edge 530</h5>
+                  <h5 className="text-lg sm:text-xl font-bold">
+                    Garmin Edge 530
+                  </h5>
                   <span className="text-xl sm:text-2xl font-bold text-[#09bc8a]">
                     R$ 1.299
                   </span>
                 </div>
                 <a
                   href="#"
-                  className="mt-3 sm:mt-4 bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white py-2 px-4 rounded font-bold text-center hover:opacity-90 text-sm sm:text-base">
+                  className="mt-3 sm:mt-4 bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white py-2 px-4 rounded font-bold text-center hover:opacity-90 text-sm sm:text-base"
+                >
                   Adicionar ao carrinho
                 </a>
               </div>
@@ -190,7 +565,8 @@ const Home = () => {
                 <Link
                   href={card.link}
                   key={index}
-                  className="w-full sm:w-[200px] md:w-[220px] h-[250px] sm:h-[280px] mx-auto">
+                  className="w-full sm:w-[200px] md:w-[220px] h-[250px] sm:h-[280px] mx-auto"
+                >
                   <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 flex flex-col h-full">
                     <div className="relative flex-1">
                       <Image
@@ -222,7 +598,8 @@ const Home = () => {
             {[1, 2, 3, 4].map((_, i) => (
               <div
                 key={i}
-                className="bg-white rounded-md shadow-md w-full max-w-[350px] h-[330px] sm:h-[380px] p-3 sm:p-4 flex flex-col mx-auto">
+                className="bg-white rounded-md shadow-md w-full max-w-[350px] h-[330px] sm:h-[380px] p-3 sm:p-4 flex flex-col mx-auto"
+              >
                 <div className="relative w-full h-[140px] sm:h-[180px]">
                   <Image
                     src="/img/highlight.png"
@@ -232,14 +609,17 @@ const Home = () => {
                   />
                 </div>
                 <div className="flex justify-between items-center mt-3 sm:mt-4">
-                  <h5 className="text-lg sm:text-xl font-bold">Produto {i + 1}</h5>
+                  <h5 className="text-lg sm:text-xl font-bold">
+                    Produto {i + 1}
+                  </h5>
                   <span className="text-xl sm:text-2xl font-bold text-[#09bc8a]">
                     R$ 999
                   </span>
                 </div>
                 <a
                   href="#"
-                  className="mt-3 sm:mt-4 bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white py-2 px-4 rounded font-bold text-center hover:opacity-90 text-sm sm:text-base">
+                  className="mt-3 sm:mt-4 bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white py-2 px-4 rounded font-bold text-center hover:opacity-90 text-sm sm:text-base"
+                >
                   Adicionar ao carrinho
                 </a>
               </div>
@@ -261,7 +641,8 @@ const Home = () => {
                 {[1, 2, 3, 4].map((_, i) => (
                   <div
                     key={i}
-                    className="bg-white rounded-md shadow-md w-full max-w-[350px] h-[330px] sm:h-[380px] p-3 sm:p-4 flex flex-col mx-auto">
+                    className="bg-white rounded-md shadow-md w-full max-w-[350px] h-[330px] sm:h-[380px] p-3 sm:p-4 flex flex-col mx-auto"
+                  >
                     <div className="relative w-full h-[140px] sm:h-[180px]">
                       <Image
                         src="/img/highlight.png"
@@ -271,14 +652,17 @@ const Home = () => {
                       />
                     </div>
                     <div className="flex justify-between items-center mt-3 sm:mt-4">
-                      <h5 className="text-lg sm:text-xl font-bold">Produto {i + 1}</h5>
+                      <h5 className="text-lg sm:text-xl font-bold">
+                        Produto {i + 1}
+                      </h5>
                       <span className="text-xl sm:text-2xl font-bold text-[#09bc8a]">
                         R$ 999
                       </span>
                     </div>
                     <a
                       href="#"
-                      className="mt-3 sm:mt-4 bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white py-2 px-4 rounded font-bold text-center hover:opacity-90 text-sm sm:text-base">
+                      className="mt-3 sm:mt-4 bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white py-2 px-4 rounded font-bold text-center hover:opacity-90 text-sm sm:text-base"
+                    >
                       Adicionar ao carrinho
                     </a>
                   </div>
@@ -297,7 +681,8 @@ const Home = () => {
             {[...Array(6)].map((_, i) => (
               <div
                 key={i}
-                className="bg-[#09BC8A] aspect-square rounded-lg"></div>
+                className="bg-[#09BC8A] aspect-square rounded-lg"
+              ></div>
             ))}
           </div>
           <a href="https://www.instagram.com/bikescombr/">
