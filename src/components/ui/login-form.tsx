@@ -27,7 +27,7 @@ export function LoginForm({
   const [emailError, setEmailError] = useState("");
 
   const router = useRouter();
-  const { silentValidate } = useAuth(); // <<<<<< AQUI
+  const { user } = useAuth();
 
   const validateEmail = (email: string) => {
     if (!email) return "O e-mail é obrigatório";
@@ -71,10 +71,7 @@ export function LoginForm({
       });
 
       if (response.status === 200) {
-        // 1) força a hidratação do usuário AGORA (pra Header mudar sem F5)
-        await silentValidate({ redirectOnFail: false });
-
-        // 2) navega
+        // Navega após login bem-sucedido
         router.replace("/home");
       }
     } catch (error: any) {

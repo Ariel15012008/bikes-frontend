@@ -6,13 +6,11 @@ import { Footer } from "@/components/footer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { IoEyeSharp, IoEyeOffSharp } from "react-icons/io5";
 import { FaArrowDown } from "react-icons/fa";
 import { FaRegEdit, FaTrash } from "react-icons/fa";
 import Image from "next/image";
 import { toast, Toaster } from "sonner";
 import { useRouter } from "next/navigation";
-import { authFetch } from "../utils/authFetch";
 import {
   Select,
   SelectContent,
@@ -21,6 +19,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+
+// NOVO: rotas centralizadas
+import { authFetchRoutes, localidadesRoutes, userRoutes, paths } from "@/app/routes";
 
 interface País {
   id: number;
@@ -89,19 +90,16 @@ export default function ProfilePage() {
   const [countries, setCountries] = useState<País[]>([]);
   const [states, setStates] = useState<Estado[]>([]);
   const [cities, setCities] = useState<Cidade[]>([]);
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
-  const [showLocationForm, setShowLocationForm] = useState(false);
   const [isSavingLocation, setIsSavingLocation] = useState(false);
   const [showArrow, setShowArrow] = useState(false);
+
   const router = useRouter();
 
   const scrollToLocations = () => {
     const element = document.getElementById("saved-locations");
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-    }
+    if (element) element.scrollIntoView({ behavior: "smooth" });
   };
 
   const formatPhone = (value: string): string => {
@@ -114,12 +112,8 @@ export default function ProfilePage() {
 
   const formatCEP = (value: string): string => {
     const numbers = value.replace(/\D/g, "");
-    if (numbers.length <= 5) {
-      return numbers;
-    }
-    if (numbers.length <= 8) {
-      return `${numbers.slice(0, 5)}-${numbers.slice(5)}`;
-    }
+    if (numbers.length <= 5) return numbers;
+    if (numbers.length <= 8) return `${numbers.slice(0, 5)}-${numbers.slice(5)}`;
     return `${numbers.slice(0, 5)}-${numbers.slice(5, 8)}`;
   };
 
@@ -136,19 +130,22 @@ export default function ProfilePage() {
     setCurrentEndereco((prev) => ({ ...prev, cep: formattedValue }));
   };
 
+  // 1) Renova sessão (sem hardcode)
   useEffect(() => {
-    authFetch("http://localhost:8000/auth/refresh-token", {
-      method: "POST",
-    }).catch(() => {
-      toast.error("Erro de sessão", {
-        description: "Não foi possível renovar sua sessão automaticamente",
+    authFetchRoutes
+      .refreshToken()
+      .catch(() => {
+        toast.error("Erro de sessão", {
+          description: "Não foi possível renovar sua sessão automaticamente",
+        });
       });
-    });
   }, []);
 
+  // 2) Carrega países
   useEffect(() => {
-    authFetch("http://localhost:8000/localidades/paises")
-      .then((response) => response.json())
+    localidadesRoutes
+      .listPaises()
+      .then((res) => res.json())
       .then((data) => setCountries(data))
       .catch(() =>
         toast.error("Erro ao carregar", {
@@ -157,6 +154,7 @@ export default function ProfilePage() {
       );
   }, []);
 
+  // 3) Carrega estados ao selecionar país
   useEffect(() => {
     if (!currentEndereco.id_pais) {
       setStates([]);
@@ -164,10 +162,9 @@ export default function ProfilePage() {
       return;
     }
 
-    authFetch(
-      `http://localhost:8000/localidades/estados?pais_id=${currentEndereco.id_pais}`
-    )
-      .then((response) => response.json())
+    localidadesRoutes
+      .listEstadosByPais(currentEndereco.id_pais)
+      .then((res) => res.json())
       .then((data) => setStates(data))
       .catch(() =>
         toast.error("Erro ao carregar", {
@@ -176,16 +173,16 @@ export default function ProfilePage() {
       );
   }, [currentEndereco.id_pais]);
 
+  // 4) Carrega cidades ao selecionar estado
   useEffect(() => {
     if (!currentEndereco.id_estado) {
       setCities([]);
       return;
     }
 
-    authFetch(
-      `http://localhost:8000/localidades/cidades?estado_id=${currentEndereco.id_estado}`
-    )
-      .then((response) => response.json())
+    localidadesRoutes
+      .listCidadesByEstado(currentEndereco.id_estado)
+      .then((res) => res.json())
       .then((data) => setCities(data))
       .catch(() =>
         toast.error("Erro ao carregar", {
@@ -194,10 +191,11 @@ export default function ProfilePage() {
       );
   }, [currentEndereco.id_estado]);
 
+  // 5) Carrega perfil e endereços
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const userResponse = await authFetch("http://localhost:8000/users/me");
+        const userResponse = await userRoutes.me();
         const userData = await userResponse.json();
 
         setFormData({
@@ -207,16 +205,14 @@ export default function ProfilePage() {
           senha: "",
         });
 
-        const enderecosResponse = await authFetch(
-          "http://localhost:8000/users/enderecos"
-        );
+        const enderecosResponse = await userRoutes.listEnderecos();
         const enderecosData = await enderecosResponse.json();
         setEnderecos(enderecosData.enderecos || []);
-      } catch (error) {
+      } catch {
         toast.error("Erro ao carregar", {
           description: "Não foi possível carregar seus dados de perfil",
         });
-        router.push("/login");
+        router.push(paths.login());
       } finally {
         setIsFetching(false);
       }
@@ -231,32 +227,22 @@ export default function ProfilePage() {
     setFormData((prev) => ({ ...prev, [name]: formatted }));
   };
 
-  const handleEnderecoChange = (
-    key: keyof Endereco,
-    value: string | boolean
-  ) => {
+  const handleEnderecoChange = (key: keyof Endereco, value: string | boolean) => {
     setCurrentEndereco((prev) => {
-      // Se mudou país: zera estado e cidade
       if (key === "id_pais") {
-        return {
-          ...prev,
-          id_pais: value as string,
-          id_estado: "",
-          id_cidade: "",
-        };
+        return { ...prev, id_pais: value as string, id_estado: "", id_cidade: "" };
       }
-
-      // Se mudou estado: zera cidade
       if (key === "id_estado") {
-        return {
-          ...prev,
-          id_estado: value as string,
-          id_cidade: "",
-        };
+        return { ...prev, id_estado: value as string, id_cidade: "" };
       }
-
       return { ...prev, [key]: value };
     });
+  };
+
+  const reloadEnderecos = async () => {
+    const enderecosResponse = await userRoutes.listEnderecos();
+    const enderecosData = await enderecosResponse.json();
+    setEnderecos(enderecosData.enderecos || []);
   };
 
   const saveEndereco = async (enderecoData: Endereco) => {
@@ -277,7 +263,7 @@ export default function ProfilePage() {
         return null;
       }
 
-      const requestBody = {
+      const payload: userRoutes.CreateEnderecoPayload = {
         cep: enderecoData.cep.replace(/\D/g, ""),
         logradouro: enderecoData.logradouro,
         numero: enderecoData.numero,
@@ -288,16 +274,7 @@ export default function ProfilePage() {
         endereco_primario: enderecoData.endereco_primario,
       };
 
-      const response = await authFetch(
-        "http://localhost:8000/users/create-endereco",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-        }
-      );
+      const response = await userRoutes.createEndereco(payload);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -312,18 +289,12 @@ export default function ProfilePage() {
 
       setShowArrow(!!enderecoData.complemento);
 
-      // Atualiza a lista de endereços após cadastrar um novo
-      const enderecosResponse = await authFetch(
-        "http://localhost:8000/users/enderecos"
-      );
-      const enderecosData = await enderecosResponse.json();
-      setEnderecos(enderecosData.enderecos || []);
+      await reloadEnderecos();
 
       return result;
     } catch (error: any) {
       toast.error("Falha ao salvar", {
-        description:
-          error.message || "Ocorreu um erro ao tentar salvar a localização",
+        description: error.message || "Ocorreu um erro ao tentar salvar a localização",
       });
       return null;
     } finally {
@@ -332,14 +303,8 @@ export default function ProfilePage() {
   };
 
   const addEndereco = async () => {
-    if (
-      !currentEndereco.id_pais ||
-      !currentEndereco.id_estado ||
-      !currentEndereco.id_cidade
-    ) {
-      toast.error("Dados obrigatórios", {
-        description: "Preencha país, estado e cidade",
-      });
+    if (!currentEndereco.id_pais || !currentEndereco.id_estado || !currentEndereco.id_cidade) {
+      toast.error("Dados obrigatórios", { description: "Preencha país, estado e cidade" });
       return;
     }
 
@@ -361,70 +326,75 @@ export default function ProfilePage() {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  e.preventDefault();
+  setIsLoading(true);
 
-    try {
-      const response = await authFetch("http://localhost:8000/users/update", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          pessoa: {
-            nome_completo: formData.nome,
-            email: formData.email,
-            telefone_celular: formData.telefone.replace(/\D/g, ""),
-          },
-          usuario: {
-            email: formData.email,
-            senha: formData.senha || undefined,
-          },
-        }),
-      });
+  try {
+    const payload: userRoutes.UpdateProfilePayload = {
+      pessoa: {
+        nome_completo: formData.nome,
+        email: formData.email,
+        telefone_celular: formData.telefone.replace(/\D/g, ""),
+      },
+      usuario: {
+        email: formData.email,
+        senha: formData.senha || undefined,
+      },
+    };
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Erro ao atualizar perfil");
+    const response = await userRoutes.updateProfile(payload);
+
+    if (!response.ok) {
+      // tenta extrair o erro do backend (FastAPI geralmente manda {detail: ...})
+      let backendMessage = `HTTP ${response.status}`;
+
+      const contentType = response.headers.get("content-type") || "";
+
+      try {
+        if (contentType.includes("application/json")) {
+          const data = await response.json();
+
+          // FastAPI: detail pode ser string, lista, objeto...
+          if (typeof data?.detail === "string") backendMessage = data.detail;
+          else if (data?.detail) backendMessage = JSON.stringify(data.detail);
+          else backendMessage = JSON.stringify(data);
+        } else {
+            const text = String(await response.text());
+            if (text) backendMessage = text;  
+        }
+      } catch {
+        // se falhar parsing, mantém HTTP status
       }
 
-      toast.success("Perfil atualizado!", {
-        description: "Seus dados foram salvos com sucesso",
-      });
-
-      setFormData((prev) => ({ ...prev, senha: "" }));
-    } catch (error: any) {
-      toast.error("Falha na atualização", {
-        description:
-          error.message || "Ocorreu um erro ao tentar atualizar seu perfil",
-      });
-    } finally {
-      setIsLoading(false);
+      throw new Error(backendMessage);
     }
-  };
+
+    toast.success("Perfil atualizado!", {
+      description: "Seus dados foram salvos com sucesso",
+    });
+
+    setFormData((prev) => ({ ...prev, senha: "" }));
+  } catch (error: any) {
+    // aqui você vai ver o erro REAL (porque foi jogado acima com a mensagem do backend)
+    console.log("Erro updateProfile:", error);
+    toast.error("Falha na atualização", {
+      description: error?.message || "Ocorreu um erro ao tentar atualizar seu perfil",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   const setAsPrimaryAddress = async (id: number) => {
     try {
-      const response = await authFetch(
-        `http://localhost:8000/users/endereco/${id}/set-primary`,
-        {
-          method: "PUT",
-        }
-      );
+      const response = await userRoutes.setEnderecoPrimary(id);
 
-      if (!response.ok) {
-        throw new Error("Falha ao definir endereço como primário");
-      }
+      if (!response.ok) throw new Error("Falha ao definir endereço como primário");
 
-      // Atualiza a lista de endereços após a mudança
-      const enderecosResponse = await authFetch(
-        "http://localhost:8000/users/enderecos"
-      );
-      const enderecosData = await enderecosResponse.json();
-      setEnderecos(enderecosData.enderecos || []);
-
+      await reloadEnderecos();
       toast.success("Endereço principal atualizado!");
-    } catch (error) {
+    } catch {
       toast.error("Erro", {
         description: "Não foi possível definir este endereço como principal",
       });
@@ -433,26 +403,13 @@ export default function ProfilePage() {
 
   const deleteAddress = async (id: number) => {
     try {
-      const response = await authFetch(
-        `http://localhost:8000/endereco/delete/${id}`,
-        {
-          method: "DELETE",
-        }
-      );
+      const response = await userRoutes.deleteEndereco(id);
 
-      if (!response.ok) {
-        throw new Error("Falha ao deletar endereço");
-      }
+      if (!response.ok) throw new Error("Falha ao deletar endereço");
 
-      // Atualiza a lista de endereços após a exclusão
-      const enderecosResponse = await authFetch(
-        "http://localhost:8000/users/enderecos"
-      );
-      const enderecosData = await enderecosResponse.json();
-      setEnderecos(enderecosData.enderecos || []);
-
+      await reloadEnderecos();
       toast.success("Endereço deletado com sucesso!");
-    } catch (error) {
+    } catch {
       toast.error("Erro", {
         description: "Não foi possível deletar este endereço",
       });
@@ -464,8 +421,7 @@ export default function ProfilePage() {
 
     if (primaryAddress && primaryAddress.id === id && enderecos.length > 1) {
       toast.error("Não é possível excluir o endereço principal", {
-        description:
-          "Defina outro endereço como principal antes de excluir este",
+        description: "Defina outro endereço como principal antes de excluir este",
       });
       return;
     }
@@ -495,9 +451,7 @@ export default function ProfilePage() {
           </div>
         </div>
       ),
-      {
-        duration: 10000,
-      }
+      { duration: 10000 }
     );
   };
 
@@ -512,33 +466,24 @@ export default function ProfilePage() {
   return (
     <div className="font-sans">
       <Header />
+
       <main className="mt-[80px] min-h-screen px-4 py-10 bg-gray-100 ">
         <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-6">
           <div className="flex flex-col items-center justify-center gap-4 mb-8 md:mb-10">
             <div className="w-24 h-24 md:w-32 md:h-32 relative rounded-full overflow-hidden shadow-md">
-              <Image
-                src="/img/perfil-placeholder.png"
-                alt="Foto de perfil"
-                fill
-                className="object-cover"
-              />
+              <Image src="/img/perfil-placeholder.png" alt="Foto de perfil" fill className="object-cover" />
             </div>
             <p className="text-lg md:text-xl font-semibold">{formData.nome}</p>
-            <Button
-              variant="outline"
-              className="text-sm md:text-base cursor-pointer"
-            >
+            <Button variant="outline" className="text-sm md:text-base cursor-pointer">
               Trocar foto
             </Button>
           </div>
+
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>País</Label>
-                <Select
-                  value={currentEndereco.id_pais}
-                  onValueChange={(v) => handleEnderecoChange("id_pais", v)}
-                >
+                <Select value={currentEndereco.id_pais} onValueChange={(v) => handleEnderecoChange("id_pais", v)}>
                   <SelectTrigger className="w-full cursor-pointer">
                     <SelectValue placeholder="País" />
                   </SelectTrigger>
@@ -551,23 +496,18 @@ export default function ProfilePage() {
                   </SelectContent>
                 </Select>
               </div>
+
               <div>
                 <Label>Estado</Label>
-
                 {!currentEndereco.id_pais ? (
-                  // Campo fake desabilitado (não abre nunca)
                   <div className="h-9 w-full rounded-md border bg-gray-100 px-3 flex items-center text-sm text-gray-500 cursor-not-allowed opacity-70">
                     Selecione um país primeiro
                   </div>
                 ) : (
-                  <Select
-                    value={currentEndereco.id_estado}
-                    onValueChange={(v) => handleEnderecoChange("id_estado", v)}
-                  >
+                  <Select value={currentEndereco.id_estado} onValueChange={(v) => handleEnderecoChange("id_estado", v)}>
                     <SelectTrigger className="w-full cursor-pointer">
                       <SelectValue placeholder="Estado" />
                     </SelectTrigger>
-
                     <SelectContent>
                       {states.map((e) => (
                         <SelectItem key={e.id} value={e.id.toString()}>
@@ -581,21 +521,15 @@ export default function ProfilePage() {
 
               <div>
                 <Label>Cidade</Label>
-
                 {!currentEndereco.id_estado ? (
-                  // Campo fake desabilitado (não abre nunca)
                   <div className="h-9 w-full rounded-md border bg-gray-100 px-3 flex items-center text-sm text-gray-500 cursor-not-allowed opacity-70">
                     Selecione um estado primeiro
                   </div>
                 ) : (
-                  <Select
-                    value={currentEndereco.id_cidade}
-                    onValueChange={(v) => handleEnderecoChange("id_cidade", v)}
-                  >
+                  <Select value={currentEndereco.id_cidade} onValueChange={(v) => handleEnderecoChange("id_cidade", v)}>
                     <SelectTrigger className="w-full cursor-pointer">
                       <SelectValue placeholder="Cidade" />
                     </SelectTrigger>
-
                     <SelectContent>
                       {cities.map((c) => (
                         <SelectItem key={c.id} value={c.id.toString()}>
@@ -619,28 +553,27 @@ export default function ProfilePage() {
                   className="cursor-pointer"
                 />
               </div>
+
               <div>
                 <Label>Bairro</Label>
                 <Input
                   value={currentEndereco.bairro}
-                  onChange={(e) =>
-                    handleEnderecoChange("bairro", e.target.value)
-                  }
+                  onChange={(e) => handleEnderecoChange("bairro", e.target.value)}
                   placeholder="Bairro"
                   className="cursor-pointer"
                 />
               </div>
+
               <div>
                 <Label>Logradouro</Label>
                 <Input
                   value={currentEndereco.logradouro}
-                  onChange={(e) =>
-                    handleEnderecoChange("logradouro", e.target.value)
-                  }
+                  onChange={(e) => handleEnderecoChange("logradouro", e.target.value)}
                   placeholder="Logradouro"
                   className="cursor-pointer"
                 />
               </div>
+
               <div>
                 <Label>Número</Label>
                 <Input
@@ -650,36 +583,30 @@ export default function ProfilePage() {
                   className="cursor-pointer"
                 />
               </div>
+
               <div className="relative pb-10">
                 <Label>Complemento</Label>
                 <Input
                   value={currentEndereco.complemento || ""}
-                  onChange={(e) =>
-                    handleEnderecoChange("complemento", e.target.value)
-                  }
+                  onChange={(e) => handleEnderecoChange("complemento", e.target.value)}
                   placeholder="Complemento (opcional)"
                   className={`mt-1 cursor-pointer ${showArrow ? "mb-6" : ""}`}
                 />
                 {showArrow && (
                   <div className="absolute bottom-0 left-1/2 -translate-x-1/2 sm:left-[100%] sm:translate-x-0">
-                    <button
-                      onClick={scrollToLocations}
-                      className="animate-bounce cursor-pointer"
-                    >
+                    <button onClick={scrollToLocations} className="animate-bounce cursor-pointer">
                       <FaArrowDown className="text-[#0f9972] text-3xl" />
                     </button>
                   </div>
                 )}
               </div>
+
               <div className="flex items-center space-x-2 pb-6 pl-3">
                 <Checkbox
                   id="endereco-primario"
                   checked={currentEndereco.endereco_primario}
                   onCheckedChange={(checked) =>
-                    handleEnderecoChange(
-                      "endereco_primario",
-                      checked as boolean
-                    )
+                    handleEnderecoChange("endereco_primario", checked as boolean)
                   }
                   className="cursor-pointer"
                 />
@@ -693,11 +620,7 @@ export default function ProfilePage() {
             </div>
 
             <div className="flex flex-col gap-4 mt-6">
-              <Button
-                onClick={addEndereco}
-                className="w-full cursor-pointer"
-                disabled={isSavingLocation}
-              >
+              <Button onClick={addEndereco} className="w-full cursor-pointer" disabled={isSavingLocation}>
                 {isSavingLocation ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin cursor-pointer" />
                 ) : (
@@ -709,6 +632,7 @@ export default function ProfilePage() {
             {enderecos.length > 0 && (
               <div id="saved-locations" className="pt-8 space-y-4">
                 <h3 className="text-lg font-semibold">Empresas cadastradas</h3>
+
                 {enderecos.map((e, i) => (
                   <div
                     key={e.id}
@@ -720,20 +644,19 @@ export default function ProfilePage() {
                   >
                     <div className="flex justify-between items-start">
                       <p className="font-semibold">
-                        {i + 1} -{" "}
-                        {e.endereco_primario
-                          ? "Endereço principal"
-                          : "Endereço secundário"}
+                        {i + 1} - {e.endereco_primario ? "Endereço principal" : "Endereço secundário"}
                       </p>
+
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => router.push(`/editAddress/${e.id}`)}
+                          onClick={() => router.push(paths.editAddress(e.id))}
                           className="cursor-pointer"
                         >
                           <FaRegEdit className="size-4" />
                         </Button>
+
                         <Button
                           variant="outline"
                           size="sm"
@@ -744,29 +667,22 @@ export default function ProfilePage() {
                         </Button>
                       </div>
                     </div>
-                    <p>
-                      <strong>Estado:</strong> {e.nome_estado}
-                    </p>
-                    <p>
-                      <strong>Cidade:</strong> {e.nome_cidade}
-                    </p>
-                    <p>
-                      <strong>Logradouro:</strong> {e.logradouro}
-                    </p>
-                    <p>
-                      <strong>Número:</strong> {e.numero}
-                    </p>
+
+                    <p><strong>Estado:</strong> {e.nome_estado}</p>
+                    <p><strong>Cidade:</strong> {e.nome_cidade}</p>
+                    <p><strong>Logradouro:</strong> {e.logradouro}</p>
+                    <p><strong>Número:</strong> {e.numero}</p>
+
                     {e.complemento && (
                       <p className="text-[#0f9972] font-medium">
                         <strong>Complemento:</strong> {e.complemento}
                       </p>
                     )}
-                    <p>
-                      <strong>Bairro:</strong> {e.bairro}
-                    </p>
-                    <p>
-                      <strong>CEP:</strong> {e.cep}
-                    </p>
+
+                    <p><strong>Bairro:</strong> {e.bairro}</p>
+                    <p><strong>CEP:</strong> {e.cep}</p>
+
+                    {/* Se você quiser expor "definir primário" na UI, pode adicionar um botão chamando setAsPrimaryAddress(e.id) */}
                   </div>
                 ))}
               </div>
@@ -774,6 +690,7 @@ export default function ProfilePage() {
           </div>
         </div>
       </main>
+
       <Footer />
 
       <Toaster
@@ -782,42 +699,42 @@ export default function ProfilePage() {
           unstyled: true,
           classNames: {
             toast: `
-        bg-white !important
-        border border-gray-200
-        flex items-center 
-        p-4 rounded-md 
-        shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)]
-        gap-4 
-        max-w-[320px] w-full
-        text-gray-800
-      `,
+              bg-white !important
+              border border-gray-200
+              flex items-center 
+              p-4 rounded-md 
+              shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)]
+              gap-4 
+              max-w-[320px] w-full
+              text-gray-800
+            `,
             title: "font-bold text-sm",
             description: "text-sm",
             error: `
-        !bg-red-100 !important
-        !border-red-300
-        !text-red-800
-      `,
+              !bg-red-100 !important
+              !border-red-300
+              !text-red-800
+            `,
             success: `
-        !bg-green-100 !important
-        !border-green-300
-        !text-green-800
-      `,
+              !bg-green-100 !important
+              !border-green-300
+              !text-green-800
+            `,
             actionButton: `
-        bg-[#09bc8a] hover:bg-[#07a77a]
-        text-white 
-        px-3 py-1 
-        rounded-md 
-        text-sm font-medium
-      `,
+              bg-[#09bc8a] hover:bg-[#07a77a]
+              text-white 
+              px-3 py-1 
+              rounded-md 
+              text-sm font-medium
+            `,
             cancelButton: `
-        bg-gray-200 hover:bg-gray-300
-        text-gray-800 
-        px-3 py-1 
-        rounded-md 
-        text-sm font-medium 
-        ml-2
-      `,
+              bg-gray-200 hover:bg-gray-300
+              text-gray-800 
+              px-3 py-1 
+              rounded-md 
+              text-sm font-medium 
+              ml-2
+            `,
           },
         }}
       />

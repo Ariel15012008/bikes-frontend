@@ -7,12 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { IoEyeSharp, IoEyeOffSharp } from "react-icons/io5";
-import { FaArrowDown } from "react-icons/fa";
 import { FaRegEdit, FaTrash } from "react-icons/fa";
-import Image from "next/image";
 import { toast, Toaster } from "sonner";
 import { useRouter } from "next/navigation";
-import { authFetch } from "../utils/authFetch";
 import {
   Select,
   SelectContent,
@@ -21,6 +18,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+
+// NOVO: rotas centralizadas
+import { authFetchRoutes, localidadesRoutes, userRoutes, paths } from "@/app/routes";
 
 interface País {
   id: number;
@@ -65,6 +65,29 @@ interface SavedEndereco {
   endereco_primario: boolean;
 }
 
+async function getBackendErrorMessage(response: any): Promise<string> {
+  let backendMessage = `HTTP ${response.status}`;
+  const contentType = response.headers.get("content-type") || "";
+
+  try {
+    if (contentType.includes("application/json")) {
+      const data: any = await response.json();
+
+      if (typeof data?.detail === "string") return data.detail;
+      if (data?.detail) return JSON.stringify(data.detail);
+
+      return JSON.stringify(data);
+    }
+
+    const text = String(await response.text());
+    if (text) return text;
+  } catch {
+    // keep fallback
+  }
+
+  return backendMessage;
+}
+
 export default function ProfilePage() {
   const [formData, setFormData] = useState({
     nome: "",
@@ -95,6 +118,7 @@ export default function ProfilePage() {
   const [showLocationForm, setShowLocationForm] = useState(false);
   const [isSavingLocation, setIsSavingLocation] = useState(false);
   const [showArrow, setShowArrow] = useState(false);
+
   const router = useRouter();
 
   const scrollToLocations = useCallback(() => {
@@ -133,86 +157,82 @@ export default function ProfilePage() {
     [formatCEP]
   );
 
-  const loadCountries = useCallback(async () => {
-    try {
-      const response = await authFetch("http://localhost:8000/localidades/paises");
-      const data = await response.json();
-      setCountries(data);
-    } catch {
-      toast.error("Erro ao carregar", {
-        description: "Não foi possível carregar a lista de países",
-      });
-    }
-  }, []);
-
-  const loadStates = useCallback(async (paisId: string) => {
-    if (!paisId) return;
-    try {
-      const response = await authFetch(
-        `http://localhost:8000/localidades/estados?pais_id=${paisId}`
-      );
-      const data = await response.json();
-      setStates(data);
-    } catch {
-      toast.error("Erro ao carregar", {
-        description: "Não foi possível carregar a lista de estados",
-      });
-    }
-  }, []);
-
-  const loadCities = useCallback(async (estadoId: string) => {
-    if (!estadoId) return;
-    try {
-      const response = await authFetch(
-        `http://localhost:8000/localidades/cidades?estado_id=${estadoId}`
-      );
-      const data = await response.json();
-      setCities(data);
-    } catch {
-      toast.error("Erro ao carregar", {
-        description: "Não foi possível carregar a lista de cidades",
-      });
-    }
-  }, []);
-
+  // refresh + load países
   useEffect(() => {
-    authFetch("http://localhost:8000/auth/refresh-token", {
-      method: "POST",
-    }).catch(() => {
+    authFetchRoutes.refreshToken().catch(() => {
       toast.error("Erro de sessão", {
         description: "Não foi possível renovar sua sessão automaticamente",
       });
     });
 
-    loadCountries();
-  }, [loadCountries]);
+    localidadesRoutes
+      .listPaises()
+      .then(async (res) => {
+        if (!res.ok) throw new Error(await getBackendErrorMessage(res));
+        return res.json();
+      })
+      .then((data) => setCountries(data))
+      .catch((err) =>
+        toast.error("Erro ao carregar", {
+          description: err?.message || "Não foi possível carregar a lista de países",
+        })
+      );
+  }, []);
 
-  // limpa e carrega estados conforme país
+  // estados por país
   useEffect(() => {
     if (!currentEndereco.id_pais) {
       setStates([]);
       setCities([]);
       return;
     }
-    loadStates(currentEndereco.id_pais);
-  }, [currentEndereco.id_pais, loadStates]);
 
-  // limpa e carrega cidades conforme estado
+    localidadesRoutes
+      .listEstadosByPais(currentEndereco.id_pais)
+      .then(async (res) => {
+        if (!res.ok) throw new Error(await getBackendErrorMessage(res));
+        return res.json();
+      })
+      .then((data) => setStates(data))
+      .catch((err) =>
+        toast.error("Erro ao carregar", {
+          description: err?.message || "Não foi possível carregar a lista de estados",
+        })
+      );
+  }, [currentEndereco.id_pais]);
+
+  // cidades por estado
   useEffect(() => {
     if (!currentEndereco.id_estado) {
       setCities([]);
       return;
     }
-    loadCities(currentEndereco.id_estado);
-  }, [currentEndereco.id_estado, loadCities]);
 
+    localidadesRoutes
+      .listCidadesByEstado(currentEndereco.id_estado)
+      .then(async (res) => {
+        if (!res.ok) throw new Error(await getBackendErrorMessage(res));
+        return res.json();
+      })
+      .then((data) => setCities(data))
+      .catch((err) =>
+        toast.error("Erro ao carregar", {
+          description: err?.message || "Não foi possível carregar a lista de cidades",
+        })
+      );
+  }, [currentEndereco.id_estado]);
+
+  // perfil + endereços
   useEffect(() => {
     const fetchData = async () => {
       try {
         const [userResponse, enderecosResponse] = await Promise.all([
-          authFetch("http://localhost:8000/users/me"),
-          authFetch("http://localhost:8000/users/enderecos"),
+          userRoutes.me(),
+          userRoutes.listEnderecos(),
         ]);
+
+        if (!userResponse.ok) throw new Error(await getBackendErrorMessage(userResponse));
+        if (!enderecosResponse.ok) throw new Error(await getBackendErrorMessage(enderecosResponse));
 
         const [userData, enderecosData] = await Promise.all([
           userResponse.json(),
@@ -231,7 +251,7 @@ export default function ProfilePage() {
         toast.error("Erro ao carregar", {
           description: "Não foi possível carregar seus dados de perfil",
         });
-        router.push("/login");
+        router.push(paths.login());
       } finally {
         setIsFetching(false);
       }
@@ -249,35 +269,30 @@ export default function ProfilePage() {
     [formatPhone]
   );
 
-  // IMPORTANT: zera dependências e limpa listas ao trocar país/estado
   const handleEnderecoChange = useCallback(
     (key: keyof Endereco, value: string | boolean) => {
       setCurrentEndereco((prev) => {
         if (key === "id_pais") {
           setStates([]);
           setCities([]);
-          return {
-            ...prev,
-            id_pais: value as string,
-            id_estado: "",
-            id_cidade: "",
-          };
+          return { ...prev, id_pais: value as string, id_estado: "", id_cidade: "" };
         }
-
         if (key === "id_estado") {
           setCities([]);
-          return {
-            ...prev,
-            id_estado: value as string,
-            id_cidade: "",
-          };
+          return { ...prev, id_estado: value as string, id_cidade: "" };
         }
-
         return { ...prev, [key]: value };
       });
     },
     []
   );
+
+  const reloadEnderecos = useCallback(async () => {
+    const res = await userRoutes.listEnderecos();
+    if (!res.ok) throw new Error(await getBackendErrorMessage(res));
+    const data = await res.json();
+    setEnderecos(data.enderecos || []);
+  }, []);
 
   const saveEndereco = useCallback(
     async (enderecoData: Endereco) => {
@@ -298,7 +313,7 @@ export default function ProfilePage() {
           return null;
         }
 
-        const requestBody = {
+        const payload: userRoutes.CreateEnderecoPayload = {
           cep: enderecoData.cep.replace(/\D/g, ""),
           logradouro: enderecoData.logradouro,
           numero: enderecoData.numero,
@@ -309,19 +324,8 @@ export default function ProfilePage() {
           endereco_primario: enderecoData.endereco_primario,
         };
 
-        const response = await authFetch(
-          "http://localhost:8000/users/create-endereco",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(requestBody),
-          }
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || "Erro ao salvar localização");
-        }
+        const response = await userRoutes.createEndereco(payload);
+        if (!response.ok) throw new Error(await getBackendErrorMessage(response));
 
         const result = await response.json();
 
@@ -331,31 +335,23 @@ export default function ProfilePage() {
 
         setShowArrow(!!enderecoData.complemento);
 
-        const enderecosResponse = await authFetch(
-          "http://localhost:8000/users/enderecos"
-        );
-        const enderecosData = await enderecosResponse.json();
-        setEnderecos(enderecosData.enderecos || []);
-
+        await reloadEnderecos();
         return result;
       } catch (error: any) {
         toast.error("Falha ao salvar", {
-          description:
-            error.message || "Ocorreu um erro ao tentar salvar a localização",
+          description: error?.message || "Ocorreu um erro ao tentar salvar a localização",
         });
         return null;
       } finally {
         setIsSavingLocation(false);
       }
     },
-    [cities, states]
+    [cities, states, reloadEnderecos]
   );
 
   const addEndereco = useCallback(async () => {
     if (!currentEndereco.id_pais || !currentEndereco.id_estado || !currentEndereco.id_cidade) {
-      toast.error("Dados obrigatórios", {
-        description: "Preencha país, estado e cidade",
-      });
+      toast.error("Dados obrigatórios", { description: "Preencha país, estado e cidade" });
       return;
     }
 
@@ -385,26 +381,20 @@ export default function ProfilePage() {
       setIsLoading(true);
 
       try {
-        const response = await authFetch("http://localhost:8000/users/update", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            pessoa: {
-              nome_completo: formData.nome,
-              email: formData.email,
-              telefone_celular: formData.telefone.replace(/\D/g, ""),
-            },
-            usuario: {
-              email: formData.email,
-              senha: formData.senha || undefined,
-            },
-          }),
-        });
+        const payload: userRoutes.UpdateProfilePayload = {
+          pessoa: {
+            nome_completo: formData.nome,
+            email: formData.email,
+            telefone_celular: formData.telefone.replace(/\D/g, ""),
+          },
+          usuario: {
+            email: formData.email,
+            senha: formData.senha || undefined,
+          },
+        };
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || "Erro ao atualizar perfil");
-        }
+        const response = await userRoutes.updateProfile(payload);
+        if (!response.ok) throw new Error(await getBackendErrorMessage(response));
 
         toast.success("Perfil atualizado!", {
           description: "Seus dados foram salvos com sucesso",
@@ -412,9 +402,9 @@ export default function ProfilePage() {
 
         setFormData((prev) => ({ ...prev, senha: "" }));
       } catch (error: any) {
+        console.log("Erro updateProfile:", error);
         toast.error("Falha na atualização", {
-          description:
-            error.message || "Ocorreu um erro ao tentar atualizar seu perfil",
+          description: error?.message || "Ocorreu um erro ao tentar atualizar seu perfil",
         });
       } finally {
         setIsLoading(false);
@@ -423,46 +413,39 @@ export default function ProfilePage() {
     [formData]
   );
 
-  const setAsPrimaryAddress = useCallback(async (id: number) => {
-    try {
-      const response = await authFetch(
-        `http://localhost:8000/users/endereco/${id}/set-primary`,
-        { method: "PUT" }
-      );
+  const setAsPrimaryAddress = useCallback(
+    async (id: number) => {
+      try {
+        const response = await userRoutes.setEnderecoPrimary(id);
+        if (!response.ok) throw new Error(await getBackendErrorMessage(response));
 
-      if (!response.ok) throw new Error("Falha ao definir endereço como primário");
+        await reloadEnderecos();
+        toast.success("Endereço principal atualizado!");
+      } catch {
+        toast.error("Erro", {
+          description: "Não foi possível definir este endereço como principal",
+        });
+      }
+    },
+    [reloadEnderecos]
+  );
 
-      const enderecosResponse = await authFetch("http://localhost:8000/users/enderecos");
-      const enderecosData = await enderecosResponse.json();
-      setEnderecos(enderecosData.enderecos || []);
+  const deleteAddress = useCallback(
+    async (id: number) => {
+      try {
+        const response = await userRoutes.deleteEndereco(id);
+        if (!response.ok) throw new Error(await getBackendErrorMessage(response));
 
-      toast.success("Endereço principal atualizado!");
-    } catch {
-      toast.error("Erro", {
-        description: "Não foi possível definir este endereço como principal",
-      });
-    }
-  }, []);
-
-  const deleteAddress = useCallback(async (id: number) => {
-    try {
-      const response = await authFetch(`http://localhost:8000/endereco/delete/${id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) throw new Error("Falha ao deletar endereço");
-
-      const enderecosResponse = await authFetch("http://localhost:8000/users/enderecos");
-      const enderecosData = await enderecosResponse.json();
-      setEnderecos(enderecosData.enderecos || []);
-
-      toast.success("Endereço deletado com sucesso!");
-    } catch {
-      toast.error("Erro", {
-        description: "Não foi possível deletar este endereço",
-      });
-    }
-  }, []);
+        await reloadEnderecos();
+        toast.success("Endereço deletado com sucesso!");
+      } catch {
+        toast.error("Erro", {
+          description: "Não foi possível deletar este endereço",
+        });
+      }
+    },
+    [reloadEnderecos]
+  );
 
   const confirmDelete = useCallback(
     (id: number) => {
@@ -517,18 +500,10 @@ export default function ProfilePage() {
   return (
     <div className="font-sans">
       <Header />
+
       <main className="mt-[80px] min-h-screen px-4 py-10 bg-gray-100 ">
         <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-6">
           <div className="flex flex-col items-center justify-center gap-4 mb-8 md:mb-10">
-            <div className="w-24 h-24 md:w-32 md:h-32 relative rounded-full overflow-hidden shadow-md">
-              <Image
-                src="/img/perfil-placeholder.png"
-                alt="Foto de perfil"
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
             <p className="text-lg md:text-xl font-semibold">{formData.nome}</p>
             <Button variant="outline" className="text-sm md:text-base cursor-pointer">
               Trocar foto
@@ -547,6 +522,7 @@ export default function ProfilePage() {
                   className="cursor-pointer"
                 />
               </div>
+
               <div>
                 <Label>Email</Label>
                 <Input
@@ -558,6 +534,7 @@ export default function ProfilePage() {
                   className="cursor-pointer"
                 />
               </div>
+
               <div>
                 <Label>Telefone</Label>
                 <Input
@@ -569,6 +546,7 @@ export default function ProfilePage() {
                   className="cursor-pointer"
                 />
               </div>
+
               <div>
                 <Label>Nova Senha</Label>
                 <div className="relative">
@@ -632,10 +610,8 @@ export default function ProfilePage() {
                   </Select>
                 </div>
 
-                {/* ESTADO: bloqueia de forma garantida (não renderiza Select) */}
                 <div>
                   <Label>Estado</Label>
-
                   {!currentEndereco.id_pais ? (
                     <div className="h-9 w-full rounded-md border bg-gray-100 px-3 flex items-center text-sm text-gray-500 cursor-not-allowed opacity-70">
                       Selecione um país primeiro
@@ -659,10 +635,8 @@ export default function ProfilePage() {
                   )}
                 </div>
 
-                {/* CIDADE: bloqueia de forma garantida (não renderiza Select) */}
                 <div>
                   <Label>Cidade</Label>
-
                   {!currentEndereco.id_estado ? (
                     <div className="h-9 w-full rounded-md border bg-gray-100 px-3 flex items-center text-sm text-gray-500 cursor-not-allowed opacity-70">
                       Selecione um estado primeiro
@@ -698,6 +672,7 @@ export default function ProfilePage() {
                     className="cursor-pointer"
                   />
                 </div>
+
                 <div>
                   <Label>Bairro</Label>
                   <Input
@@ -707,6 +682,7 @@ export default function ProfilePage() {
                     className="cursor-pointer"
                   />
                 </div>
+
                 <div>
                   <Label>Logradouro</Label>
                   <Input
@@ -716,6 +692,7 @@ export default function ProfilePage() {
                     className="cursor-pointer"
                   />
                 </div>
+
                 <div>
                   <Label>Número</Label>
                   <Input
@@ -725,6 +702,7 @@ export default function ProfilePage() {
                     className="cursor-pointer"
                   />
                 </div>
+
                 <div className="relative pb-10">
                   <Label>Complemento</Label>
                   <Input
@@ -736,11 +714,12 @@ export default function ProfilePage() {
                   {showArrow && (
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 sm:left-[100%] sm:translate-x-0">
                       <button onClick={scrollToLocations} className="animate-bounce cursor-pointer">
-                        <FaArrowDown className="text-[#0f9972] text-3xl" />
+                        <span className="text-[#0f9972] text-sm">Ver lista</span>
                       </button>
                     </div>
                   )}
                 </div>
+
                 <div className="flex items-center space-x-2 pb-6 pl-3">
                   <Checkbox
                     id="endereco-primario"
@@ -760,11 +739,7 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex flex-col gap-4 mt-6">
-                <Button
-                  onClick={addEndereco}
-                  className="w-full cursor-pointer"
-                  disabled={isSavingLocation}
-                >
+                <Button onClick={addEndereco} className="w-full cursor-pointer" disabled={isSavingLocation}>
                   {isSavingLocation ? (
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin cursor-pointer" />
                   ) : (
@@ -800,6 +775,7 @@ export default function ProfilePage() {
               {enderecos.length > 0 && (
                 <div id="saved-locations" className="pt-8 space-y-4">
                   <h3 className="text-lg font-semibold">Endereços cadastrados</h3>
+
                   {enderecos.map((e, i) => (
                     <div
                       key={e.id}
@@ -811,9 +787,9 @@ export default function ProfilePage() {
                     >
                       <div className="flex justify-between items-start">
                         <p className="font-semibold">
-                          {i + 1} -{" "}
-                          {e.endereco_primario ? "Endereço principal" : "Endereço secundário"}
+                          {i + 1} - {e.endereco_primario ? "Endereço principal" : "Endereço secundário"}
                         </p>
+
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
@@ -823,6 +799,7 @@ export default function ProfilePage() {
                           >
                             <FaRegEdit className="size-4" />
                           </Button>
+
                           <Button
                             variant="outline"
                             size="sm"
@@ -833,29 +810,22 @@ export default function ProfilePage() {
                           </Button>
                         </div>
                       </div>
-                      <p>
-                        <strong>Estado:</strong> {e.nome_estado}
-                      </p>
-                      <p>
-                        <strong>Cidade:</strong> {e.nome_cidade}
-                      </p>
-                      <p>
-                        <strong>Logradouro:</strong> {e.logradouro}
-                      </p>
-                      <p>
-                        <strong>Número:</strong> {e.numero}
-                      </p>
+
+                      <p><strong>Estado:</strong> {e.nome_estado}</p>
+                      <p><strong>Cidade:</strong> {e.nome_cidade}</p>
+                      <p><strong>Logradouro:</strong> {e.logradouro}</p>
+                      <p><strong>Número:</strong> {e.numero}</p>
+
                       {e.complemento && (
                         <p className="text-[#0f9972] font-medium">
                           <strong>Complemento:</strong> {e.complemento}
                         </p>
                       )}
-                      <p>
-                        <strong>Bairro:</strong> {e.bairro}
-                      </p>
-                      <p>
-                        <strong>CEP:</strong> {e.cep}
-                      </p>
+
+                      <p><strong>Bairro:</strong> {e.bairro}</p>
+                      <p><strong>CEP:</strong> {e.cep}</p>
+
+                      {/* opcional: botão p/ setAsPrimaryAddress(e.id) */}
                     </div>
                   ))}
                 </div>
@@ -864,6 +834,7 @@ export default function ProfilePage() {
           )}
         </div>
       </main>
+
       <Footer />
 
       <Toaster
@@ -872,42 +843,42 @@ export default function ProfilePage() {
           unstyled: true,
           classNames: {
             toast: `
-        bg-white !important
-        border border-gray-200
-        flex items-center 
-        p-4 rounded-md 
-        shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)]
-        gap-4 
-        max-w-[320px] w-full
-        text-gray-800
-      `,
+              bg-white !important
+              border border-gray-200
+              flex items-center 
+              p-4 rounded-md 
+              shadow-[0_10px_25px_-5px_rgba(0,0,0,0.3)]
+              gap-4 
+              max-w-[320px] w-full
+              text-gray-800
+            `,
             title: "font-bold text-sm",
             description: "text-sm",
             error: `
-        !bg-red-100 !important
-        !border-red-300
-        !text-red-800
-      `,
+              !bg-red-100 !important
+              !border-red-300
+              !text-red-800
+            `,
             success: `
-        !bg-green-100 !important
-        !border-green-300
-        !text-green-800
-      `,
+              !bg-green-100 !important
+              !border-green-300
+              !text-green-800
+            `,
             actionButton: `
-        bg-[#09bc8a] hover:bg-[#07a77a]
-        text-white 
-        px-3 py-1 
-        rounded-md 
-        text-sm font-medium
-      `,
+              bg-[#09bc8a] hover:bg-[#07a77a]
+              text-white 
+              px-3 py-1 
+              rounded-md 
+              text-sm font-medium
+            `,
             cancelButton: `
-        bg-gray-200 hover:bg-gray-300
-        text-gray-800 
-        px-3 py-1 
-        rounded-md 
-        text-sm font-medium 
-        ml-2
-      `,
+              bg-gray-200 hover:bg-gray-300
+              text-gray-800 
+              px-3 py-1 
+              rounded-md 
+              text-sm font-medium 
+              ml-2
+            `,
           },
         }}
       />

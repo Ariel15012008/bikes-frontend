@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import api from "@/app/utils/axiosInstance";
 import { IoEyeSharp, IoEyeOffSharp } from "react-icons/io5";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,24 +10,50 @@ import { toast, Toaster } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
+// NOVO: rotas centralizadas
+import { authRoutes, paths } from "@/app/routes";
+
+function extractAxiosErrorMessage(err: any): string {
+  const data = err?.response?.data;
+
+  if (!data) return err?.message || "Erro ao alterar a senha.";
+
+  if (typeof data?.detail === "string") return data.detail;
+  if (data?.detail) {
+    try {
+      return JSON.stringify(data.detail);
+    } catch {
+      return "Erro ao processar resposta do servidor.";
+    }
+  }
+
+  if (typeof data?.message === "string") return data.message;
+  if (typeof data === "string") return data;
+
+  try {
+    return JSON.stringify(data);
+  } catch {
+    return "Erro ao alterar a senha.";
+  }
+}
+
 export default function ResetPasswordPage() {
   const [formData, setFormData] = useState({
     newPassword: "",
     confirmPassword: "",
   });
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
+
   const token = searchParams.get("token");
 
   useEffect(() => {
-    if (!token) {
-      toast.error("Token inválido ou expirado.");
-    }
+    if (!token) toast.error("Token inválido ou expirado.");
   }, [token]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,6 +65,11 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     if (isLoading) return;
 
+    if (!token) {
+      toast.error("Token inválido ou expirado.");
+      return;
+    }
+
     if (formData.newPassword !== formData.confirmPassword) {
       toast.error("As senhas não coincidem.");
       return;
@@ -48,25 +78,25 @@ export default function ResetPasswordPage() {
     setIsLoading(true);
 
     try {
-      const response = await api.post("/auth/reset-password", {
+      await authRoutes.resetPassword({
         token,
         nova_senha: formData.newPassword,
       });
 
-      if (response.status === 200) {
-        const ms = 1500;
+      const ms = 1500;
 
-        toast.success("Senha alterada com sucesso!", {
-          description: "Redirecionando para o login...",
-          duration: ms,
-        });
+      toast.success("Senha alterada com sucesso!", {
+        description: "Redirecionando para o login...",
+        duration: ms,
+      });
 
-        setTimeout(() => {
-          router.push("/login");
-        }, ms);
-      }
+      setTimeout(() => {
+        router.push(paths.login());
+      }, ms);
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Erro ao alterar a senha.");
+      toast.error("Erro ao alterar a senha.", {
+        description: extractAxiosErrorMessage(error),
+      });
       console.log(error);
     } finally {
       setIsLoading(false);
@@ -85,7 +115,6 @@ export default function ResetPasswordPage() {
       </div>
 
       <div className="grid min-h-svh lg:grid-cols-2">
-        {/* Coluna da Imagem (agora no lado esquerdo) */}
         <div className="relative hidden lg:block overflow-hidden order-first">
           <AnimatePresence mode="wait">
             <motion.div
@@ -106,7 +135,6 @@ export default function ResetPasswordPage() {
           </AnimatePresence>
         </div>
 
-        {/* Coluna do Formulário (agora no lado direito) */}
         <div className="flex flex-col gap-6 p-8 md:p-10 bg-white lg:bg-transparent rounded-xl lg:rounded-none shadow-xl lg:shadow-none mx-auto my-4 lg:my-0 w-full max-w-md lg:max-w-lg order-last">
           <AnimatePresence mode="wait">
             <motion.div
@@ -135,10 +163,7 @@ export default function ResetPasswordPage() {
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid gap-4">
                       <div className="grid gap-2">
-                        <Label
-                          htmlFor="newPassword"
-                          className="text-gray-700 text-base"
-                        >
+                        <Label htmlFor="newPassword" className="text-gray-700 text-base">
                           Nova Senha
                         </Label>
                         <div className="relative">
@@ -155,26 +180,17 @@ export default function ResetPasswordPage() {
                           />
                           <button
                             type="button"
-                            onClick={() =>
-                              setShowNewPassword((prev) => !prev)
-                            }
+                            onClick={() => setShowNewPassword((prev) => !prev)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                             disabled={isLoading}
                           >
-                            {showNewPassword ? (
-                              <IoEyeOffSharp size={20} />
-                            ) : (
-                              <IoEyeSharp size={20} />
-                            )}
+                            {showNewPassword ? <IoEyeOffSharp size={20} /> : <IoEyeSharp size={20} />}
                           </button>
                         </div>
                       </div>
 
                       <div className="grid gap-2">
-                        <Label
-                          htmlFor="confirmPassword"
-                          className="text-gray-700 text-base"
-                        >
+                        <Label htmlFor="confirmPassword" className="text-gray-700 text-base">
                           Confirmar Senha
                         </Label>
                         <div className="relative">
@@ -191,17 +207,11 @@ export default function ResetPasswordPage() {
                           />
                           <button
                             type="button"
-                            onClick={() =>
-                              setShowConfirmPassword((prev) => !prev)
-                            }
+                            onClick={() => setShowConfirmPassword((prev) => !prev)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                             disabled={isLoading}
                           >
-                            {showConfirmPassword ? (
-                              <IoEyeOffSharp size={20} />
-                            ) : (
-                              <IoEyeSharp size={20} />
-                            )}
+                            {showConfirmPassword ? <IoEyeOffSharp size={20} /> : <IoEyeSharp size={20} />}
                           </button>
                         </div>
                       </div>
@@ -223,7 +233,7 @@ export default function ResetPasswordPage() {
 
                 <div className="mt-4 text-center text-base">
                   <Link
-                    href="/login"
+                    href={paths.login()}
                     className="text-[#2b866c] hover:text-[#0c1b33] font-medium underline underline-offset-4"
                   >
                     Voltar para o login
@@ -235,7 +245,6 @@ export default function ResetPasswordPage() {
         </div>
       </div>
 
-      {/* Toaster local: garante que o toast renderiza nesta página */}
       <Toaster
         position="bottom-right"
         toastOptions={{

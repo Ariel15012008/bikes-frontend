@@ -8,9 +8,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast, Toaster } from "sonner";
-import { authFetch } from "@/app/utils/authFetch";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// NOVO: rotas centralizadas
+import { userRoutes, paths } from "@/app/routes";
 
 interface Endereco {
   id: number;
@@ -33,32 +41,62 @@ interface Cidade {
   nome: string;
 }
 
+async function getBackendErrorMessage(response: Response | any): Promise<string> {
+  let backendMessage = `HTTP ${response.status}`;
+  const contentType = response.headers?.get("content-type") || "";
+
+  try {
+    if (contentType.includes("application/json")) {
+      const data: any = await response.json();
+
+      // FastAPI costuma mandar {detail: ...}
+      if (typeof data?.detail === "string") return data.detail;
+      if (data?.detail) return JSON.stringify(data.detail);
+
+      // outros backends podem mandar {message: ...}
+      if (typeof data?.message === "string") return data.message;
+
+      return JSON.stringify(data);
+    }
+
+    const text = String(await response.text());
+    if (text) return text;
+  } catch {
+    // mantém fallback
+  }
+
+  return backendMessage;
+}
+
 const formatarNome = (nome: string) => {
   if (!nome) return nome;
-  
-  const excecoes = ['de', 'da', 'do', 'das', 'dos', 'e'];
-  
+
+  const excecoes = ["de", "da", "do", "das", "dos", "e"];
+
   return nome
     .toLowerCase()
-    .split(' ')
+    .split(" ")
     .map((palavra, index) => {
       if (index !== 0 && excecoes.includes(palavra)) {
         return palavra;
       }
       return palavra.charAt(0).toUpperCase() + palavra.slice(1);
     })
-    .join(' ');
+    .join(" ");
 };
 
 const cidadeCache = new Map<string, Cidade[]>();
 
 export default function EditEnderecoPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const idParam = (params as any)?.id; // Next pode retornar string|string[]
+  const id = Array.isArray(idParam) ? idParam[0] : idParam;
+
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const [endereco, setEndereco] = useState<Endereco>({
     id: 0,
     cep: "",
@@ -75,6 +113,7 @@ export default function EditEnderecoPage() {
   const [cidades, setCidades] = useState<Cidade[]>([]);
   const [cidadesCarregadas, setCidadesCarregadas] = useState(false);
 
+  // BrasilAPI (externo) — mantém como está
   useEffect(() => {
     const loadEstados = async () => {
       try {
@@ -85,13 +124,14 @@ export default function EditEnderecoPage() {
         const data = await response.json();
         const estadosFormatados = data.map((estado: Estado) => ({
           sigla: estado.sigla,
-          nome: formatarNome(estado.nome)
+          nome: formatarNome(estado.nome),
         }));
         setEstados(estadosFormatados);
       } catch (error) {
         console.error("Erro ao carregar estados:", error);
         toast.error("Erro ao carregar estados", {
-          description: "Não foi possível carregar a lista de estados. Tente novamente mais tarde.",
+          description:
+            "Não foi possível carregar a lista de estados. Tente novamente mais tarde.",
         });
       }
     };
@@ -99,61 +139,62 @@ export default function EditEnderecoPage() {
     loadEstados();
   }, []);
 
-  const loadCidades = useCallback(async (estadoNome: string) => {
-    if (!estadoNome) {
-      setCidades([]);
-      setCidadesCarregadas(true);
-      return;
-    }
-
-    // Encontra a sigla correspondente ao nome do estado
-    const estadoEncontrado = estados.find(e => 
-      e.nome === estadoNome
-    );
-    
-    const sigla = estadoEncontrado?.sigla;
-
-    if (!sigla) {
-      setCidades([]);
-      setCidadesCarregadas(true);
-      return;
-    }
-
-    if (cidadeCache.has(sigla)) {
-      setCidades(cidadeCache.get(sigla) || []);
-      setCidadesCarregadas(true);
-      return;
-    }
-
-    try {
-      setCidadesCarregadas(false);
-      const response = await fetch(
-        `https://brasilapi.com.br/api/ibge/municipios/v1/${sigla}?providers=dados-abertos-br,gov,wikipedia`
-      );
-      
-      if (!response.ok) {
+  const loadCidades = useCallback(
+    async (estadoNome: string) => {
+      if (!estadoNome) {
         setCidades([]);
-        cidadeCache.set(sigla, []);
-        throw new Error(`Erro ao carregar cidades: ${response.status}`);
+        setCidadesCarregadas(true);
+        return;
       }
 
-      const data = await response.json();
-      const cidadesFormatadas = Array.isArray(data) 
-        ? data.map(cidade => ({ nome: formatarNome(cidade.nome) }))
-        : [];
-      
-      cidadeCache.set(sigla, cidadesFormatadas);
-      setCidades(cidadesFormatadas);
-    } catch (error) {
-      console.error("Erro ao carregar cidades:", error);
-      toast.error("Erro ao carregar cidades", {
-        description: "Não foi possível carregar a lista de cidades para este estado.",
-      });
-    } finally {
-      setCidadesCarregadas(true);
-    }
-  }, [estados]);
+      const estadoEncontrado = estados.find((e) => e.nome === estadoNome);
+      const sigla = estadoEncontrado?.sigla;
 
+      if (!sigla) {
+        setCidades([]);
+        setCidadesCarregadas(true);
+        return;
+      }
+
+      if (cidadeCache.has(sigla)) {
+        setCidades(cidadeCache.get(sigla) || []);
+        setCidadesCarregadas(true);
+        return;
+      }
+
+      try {
+        setCidadesCarregadas(false);
+
+        const response = await fetch(
+          `https://brasilapi.com.br/api/ibge/municipios/v1/${sigla}?providers=dados-abertos-br,gov,wikipedia`
+        );
+
+        if (!response.ok) {
+          setCidades([]);
+          cidadeCache.set(sigla, []);
+          throw new Error(`Erro ao carregar cidades: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const cidadesFormatadas = Array.isArray(data)
+          ? data.map((cidade: any) => ({ nome: formatarNome(cidade.nome) }))
+          : [];
+
+        cidadeCache.set(sigla, cidadesFormatadas);
+        setCidades(cidadesFormatadas);
+      } catch (error) {
+        console.error("Erro ao carregar cidades:", error);
+        toast.error("Erro ao carregar cidades", {
+          description: "Não foi possível carregar a lista de cidades para este estado.",
+        });
+      } finally {
+        setCidadesCarregadas(true);
+      }
+    },
+    [estados]
+  );
+
+  // Backend (centralizado)
   const loadEndereco = useCallback(async () => {
     if (!id) {
       setError("ID do endereço não fornecido");
@@ -161,33 +202,28 @@ export default function EditEnderecoPage() {
       toast.error("Endereço inválido", {
         description: "O ID do endereço não foi especificado",
       });
-      router.push("/user");
+      router.push(paths.user());
       return;
     }
 
     try {
-      const response = await authFetch(`http://localhost:8000/endereco/${id}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      
+      // NOVO: rota centralizada
+      const response = await userRoutes.getEnderecoById(String(id));
+
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
+        throw new Error(await getBackendErrorMessage(response));
       }
 
       const data = await response.json();
-      
-      if (!data.id) {
+
+      if (!data?.id) {
         throw new Error("Dados do endereço inválidos ou vazios");
       }
 
-      // Converte sigla para nome do estado se necessário
-      const nomeEstado = estados.find(e => e.sigla === data.nome_estado)?.nome || data.nome_estado;
+      const nomeEstado =
+        estados.find((e) => e.sigla === data.nome_estado)?.nome || data.nome_estado;
 
-      const novoEndereco = {
+      const novoEndereco: Endereco = {
         id: data.id,
         cep: data.cep || "",
         logradouro: data.logradouro || "",
@@ -198,19 +234,19 @@ export default function EditEnderecoPage() {
         nome_estado: formatarNome(nomeEstado) || "",
         endereco_primario: Boolean(data.endereco_primario),
       };
-      
+
       setEndereco(novoEndereco);
-      
+
       if (novoEndereco.nome_estado) {
         await loadCidades(novoEndereco.nome_estado);
       }
-      
+
       setError(null);
     } catch (error: any) {
       console.error("[ERROR] Erro ao carregar endereço:", error);
-      setError(error.message || "Erro ao carregar dados do endereço");
+      setError(error?.message || "Erro ao carregar dados do endereço");
       toast.error("Falha ao carregar endereço", {
-        description: error.message || "Verifique sua conexão e tente novamente",
+        description: error?.message || "Verifique sua conexão e tente novamente",
       });
     } finally {
       setIsLoading(false);
@@ -223,24 +259,24 @@ export default function EditEnderecoPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setEndereco(prev => ({ ...prev, [name]: value }));
+    setEndereco((prev) => ({ ...prev, [name]: value } as Endereco));
   };
 
   const handleEstadoChange = async (value: string) => {
-    setEndereco(prev => ({ 
-      ...prev, 
-      nome_estado: value, 
-      nome_cidade: "" 
+    setEndereco((prev) => ({
+      ...prev,
+      nome_estado: value,
+      nome_cidade: "",
     }));
     await loadCidades(value);
   };
 
   const handleCidadeChange = (value: string) => {
-    setEndereco(prev => ({ ...prev, nome_cidade: value }));
+    setEndereco((prev) => ({ ...prev, nome_cidade: value }));
   };
 
   const handleCheckboxChange = (checked: boolean) => {
-    setEndereco(prev => ({ ...prev, endereco_primario: checked }));
+    setEndereco((prev) => ({ ...prev, endereco_primario: checked }));
   };
 
   const formatCEP = (value: string): string => {
@@ -252,7 +288,7 @@ export default function EditEnderecoPage() {
 
   const handleCEPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formattedValue = formatCEP(e.target.value);
-    setEndereco(prev => ({ ...prev, cep: formattedValue }));
+    setEndereco((prev) => ({ ...prev, cep: formattedValue }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -260,7 +296,14 @@ export default function EditEnderecoPage() {
     setIsSaving(true);
 
     try {
-      if (!endereco.cep || !endereco.logradouro || !endereco.numero || !endereco.bairro || !endereco.nome_estado || !endereco.nome_cidade) {
+      if (
+        !endereco.cep ||
+        !endereco.logradouro ||
+        !endereco.numero ||
+        !endereco.bairro ||
+        !endereco.nome_estado ||
+        !endereco.nome_cidade
+      ) {
         throw new Error("Preencha todos os campos obrigatórios");
       }
 
@@ -269,39 +312,31 @@ export default function EditEnderecoPage() {
         throw new Error("CEP deve conter 8 dígitos");
       }
 
-      // Envia o nome do estado diretamente (já formatado)
-      const response = await authFetch(
-        `http://localhost:8000/endereco/update`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            id: endereco.id,
-            cep: cepNumerico,
-            logradouro: endereco.logradouro,
-            numero: endereco.numero,
-            complemento: endereco.complemento,
-            bairro: endereco.bairro,
-            nome_cidade: endereco.nome_cidade,
-            nome_estado: endereco.nome_estado, // Já está como nome completo
-            endereco_primario: endereco.endereco_primario,
-          }),
-        }
-      );
-      
+      const payload: userRoutes.UpdateEnderecoPayload = {
+        id: endereco.id,
+        cep: cepNumerico,
+        logradouro: endereco.logradouro,
+        numero: endereco.numero,
+        complemento: endereco.complemento,
+        bairro: endereco.bairro,
+        nome_cidade: endereco.nome_cidade,
+        nome_estado: endereco.nome_estado,
+        endereco_primario: endereco.endereco_primario,
+      };
+
+      // NOVO: rota centralizada
+      const response = await userRoutes.updateEndereco(payload);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Erro HTTP ${response.status}`);
+        throw new Error(await getBackendErrorMessage(response));
       }
 
       toast.success("Endereço atualizado com sucesso!");
-      router.push("/user");
+      router.push(paths.user());
     } catch (error: any) {
       console.error("[ERROR] Erro ao atualizar endereço:", error);
       toast.error("Falha ao atualizar endereço", {
-        description: error.message || "Tente novamente mais tarde",
+        description: error?.message || "Tente novamente mais tarde",
       });
     } finally {
       setIsSaving(false);
@@ -326,8 +361,8 @@ export default function EditEnderecoPage() {
             <Button onClick={() => window.location.reload()} variant="outline">
               Tentar novamente
             </Button>
-            <Button onClick={() => router.push("/profile")}>
-              Voltar para o perfil
+            <Button onClick={() => router.push(paths.user())}>
+              Voltar
             </Button>
           </div>
         </div>
@@ -338,10 +373,11 @@ export default function EditEnderecoPage() {
   return (
     <div className="font-sans">
       <Header />
+
       <main className="mt-[80px] min-h-screen px-4 py-10 bg-gray-100">
         <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-bold mb-6">Editar Endereço</h2>
-          
+
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -355,13 +391,10 @@ export default function EditEnderecoPage() {
                   required
                 />
               </div>
+
               <div>
                 <Label>Estado *</Label>
-                <Select
-                  value={endereco.nome_estado}
-                  onValueChange={handleEstadoChange}
-                  required
-                >
+                <Select value={endereco.nome_estado} onValueChange={handleEstadoChange} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione um estado">
                       {endereco.nome_estado || "Selecione um estado"}
@@ -376,6 +409,7 @@ export default function EditEnderecoPage() {
                   </SelectContent>
                 </Select>
               </div>
+
               <div>
                 <Label>Cidade *</Label>
                 <Select
@@ -385,11 +419,15 @@ export default function EditEnderecoPage() {
                   required
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={
-                      !endereco.nome_estado ? "Selecione um estado primeiro" :
-                      !cidadesCarregadas ? "Carregando cidades..." :
-                      "Selecione uma cidade"
-                    }>
+                    <SelectValue
+                      placeholder={
+                        !endereco.nome_estado
+                          ? "Selecione um estado primeiro"
+                          : !cidadesCarregadas
+                          ? "Carregando cidades..."
+                          : "Selecione uma cidade"
+                      }
+                    >
                       {endereco.nome_cidade}
                     </SelectValue>
                   </SelectTrigger>
@@ -402,12 +440,15 @@ export default function EditEnderecoPage() {
                       ))
                     ) : (
                       <div className="px-2 py-1.5 text-sm text-gray-500">
-                        {endereco.nome_estado ? "Nenhuma cidade encontrada" : "Selecione um estado primeiro"}
+                        {endereco.nome_estado
+                          ? "Nenhuma cidade encontrada"
+                          : "Selecione um estado primeiro"}
                       </div>
                     )}
                   </SelectContent>
                 </Select>
               </div>
+
               <div>
                 <Label>Bairro *</Label>
                 <Input
@@ -418,6 +459,7 @@ export default function EditEnderecoPage() {
                   required
                 />
               </div>
+
               <div>
                 <Label>Logradouro *</Label>
                 <Input
@@ -428,6 +470,7 @@ export default function EditEnderecoPage() {
                   required
                 />
               </div>
+
               <div>
                 <Label>Número *</Label>
                 <Input
@@ -438,6 +481,7 @@ export default function EditEnderecoPage() {
                   required
                 />
               </div>
+
               <div>
                 <Label>Complemento</Label>
                 <Input
@@ -447,11 +491,12 @@ export default function EditEnderecoPage() {
                   placeholder="Complemento (opcional)"
                 />
               </div>
+
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="endereco-primario"
                   checked={endereco.endereco_primario}
-                  onCheckedChange={handleCheckboxChange}
+                  onCheckedChange={(v) => handleCheckboxChange(Boolean(v))}
                 />
                 <label
                   htmlFor="endereco-primario"
@@ -474,10 +519,11 @@ export default function EditEnderecoPage() {
                   "Salvar Alterações"
                 )}
               </Button>
+
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.push("/user")}
+                onClick={() => router.push(paths.user())}
                 className="flex-1"
               >
                 Cancelar
@@ -486,8 +532,8 @@ export default function EditEnderecoPage() {
           </form>
         </div>
       </main>
-      <Footer />
 
+      <Footer />
       <Toaster position="bottom-right" />
     </div>
   );

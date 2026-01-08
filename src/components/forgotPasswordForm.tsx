@@ -3,11 +3,43 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import api from "@/app/utils/axiosInstance";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FiMail, FiClock } from "react-icons/fi";
+
+// NOVO: rotas centralizadas
+import { authRoutes, paths } from "@/app/routes";
+
+function extractAxiosErrorMessage(err: any): string {
+  // Axios costuma ter err.response.data
+  const data = err?.response?.data;
+
+  if (!data) return err?.message || "Tente novamente mais tarde.";
+
+  // FastAPI: { detail: "..." } ou { detail: [...] }
+  if (typeof data?.detail === "string") return data.detail;
+  if (data?.detail) {
+    try {
+      return JSON.stringify(data.detail);
+    } catch {
+      return "Erro ao processar resposta do servidor.";
+    }
+  }
+
+  // Outras APIs: { message: "..." }
+  if (typeof data?.message === "string") return data.message;
+
+  // Se vier texto puro
+  if (typeof data === "string") return data;
+
+  // Fallback genérico
+  try {
+    return JSON.stringify(data);
+  } catch {
+    return "Tente novamente mais tarde.";
+  }
+}
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
@@ -17,14 +49,14 @@ export function ForgotPasswordForm() {
   const router = useRouter();
 
   useEffect(() => {
-    if (emailSent && countdown > 0) {
-      const timer = setTimeout(() => {
-        setCountdown(countdown - 1);
-      }, 1000);
+    if (!emailSent) return;
+
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (emailSent && countdown === 0) {
-      router.push("/login");
     }
+
+    router.push(paths.login());
   }, [emailSent, countdown, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,15 +64,13 @@ export function ForgotPasswordForm() {
     setIsLoading(true);
 
     try {
-      const response = await api.post("/auth/request-password-reset", { email });
-      
-      if (response.status === 200) {
-        toast.success("E-mail enviado com sucesso!");
-        setEmailSent(true);
-      }
+      await authRoutes.requestPasswordReset({ email });
+
+      toast.success("E-mail enviado com sucesso!");
+      setEmailSent(true);
     } catch (error: any) {
       toast.error("Erro ao enviar e-mail", {
-        description: error.response?.data?.message || "Tente novamente mais tarde.",
+        description: extractAxiosErrorMessage(error),
       });
     } finally {
       setIsLoading(false);
@@ -62,9 +92,10 @@ export function ForgotPasswordForm() {
               required
             />
           </div>
-          <Button 
-            type="submit" 
-            className="w-full bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white hover:opacity-90 text-base h-11" 
+
+          <Button
+            type="submit"
+            className="w-full bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white hover:opacity-90 text-base h-11"
             disabled={isLoading}
           >
             {isLoading ? "Enviando..." : "Enviar link de redefinição"}
@@ -77,7 +108,8 @@ export function ForgotPasswordForm() {
           </div>
           <h3 className="text-xl font-semibold text-gray-800">Verifique seu e-mail</h3>
           <p className="text-gray-600">
-            Enviamos um link de redefinição para <span className="font-medium">{email}</span>
+            Enviamos um link de redefinição para{" "}
+            <span className="font-medium">{email}</span>
           </p>
           <div className="flex items-center justify-center gap-2 text-gray-500">
             <FiClock />
