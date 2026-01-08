@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useAuth } from "@/contexts/auth-context"; 
+import { useAuth } from "@/contexts/auth-context";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,6 @@ import {
 
 import {
   HiCog,
-  HiShoppingBag,
   HiUsers,
   HiPhone,
   HiHome,
@@ -31,7 +30,6 @@ import {
 import { BiLogOut } from "react-icons/bi";
 import { IoPersonCircle } from "react-icons/io5";
 import { RxHamburgerMenu } from "react-icons/rx";
-import { MdAddBusiness } from "react-icons/md";
 
 export function Header() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -64,16 +62,19 @@ export function Header() {
           <Image src="/img/carrinho.png" alt="Carrinho" width={27} height={27} />
         </Link>
         <Link href="/favorites">
-          <Image src="/img/favoritos.png" alt="Favoritos" width={27} height={27} />
+          <Image
+            src="/img/favoritos.png"
+            alt="Favoritos"
+            width={27}
+            height={27}
+          />
         </Link>
 
-        {/* FIX: enquanto não montou, não decide entre "Entrar" e "Avatar" */}
         {!mounted ? (
           <div className="w-[90px] h-[42px]" />
         ) : isAuthenticated ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              {/* FIX adicional: Trigger deve ser um elemento interativo estável */}
               <button
                 type="button"
                 className="rounded-full cursor-pointer hover:opacity-80 transition-opacity"
@@ -91,24 +92,35 @@ export function Header() {
 
             <DropdownMenuContent
               align="end"
-              className="bg-white border border-gray-200 shadow-xl rounded-md min-w-[200px]"
+              className="z-[9999] bg-white border border-gray-200 shadow-xl rounded-md min-w-[200px]"
             >
               <DropdownMenuItem className="hover:bg-gray-50 focus:bg-gray-50">
-                <Link href="/user" className="flex items-center w-full py-1 px-2">
+                <Link
+                  href="/user"
+                  className="flex items-center w-full py-1 px-2"
+                >
                   <IoPersonCircle className="mr-2 text-gray-700" size={18} />
-                  <span className="text-gray-800">{user?.name || "Usuário"}</span>
+                  <span className="text-gray-800">
+                    {user?.name || "Usuário"}
+                  </span>
                 </Link>
               </DropdownMenuItem>
 
               <DropdownMenuItem className="hover:bg-gray-50 focus:bg-gray-50">
-                <Link href="/home" className="flex items-center w-full py-1 px-2">
+                <Link
+                  href="/home"
+                  className="flex items-center w-full py-1 px-2"
+                >
                   <HiHome className="mr-2 text-gray-700" size={18} />
                   <span className="text-gray-800">Página Inicial</span>
                 </Link>
               </DropdownMenuItem>
 
               <DropdownMenuItem className="hover:bg-gray-50 focus:bg-gray-50">
-                <Link href="/config" className="flex items-center w-full py-1 px-2">
+                <Link
+                  href="/config"
+                  className="flex items-center w-full py-1 px-2"
+                >
                   <HiCog className="mr-2 text-gray-700" size={18} />
                   <span className="text-gray-800">Configurações</span>
                 </Link>
@@ -144,7 +156,8 @@ export function Header() {
           </Button>
         </SheetTrigger>
 
-        <SheetContent side="right" className="w-64 bg-white">
+        {/* FIX: z-index do Sheet acima do header */}
+        <SheetContent side="right" className="w-64 bg-white z-[9999]">
           <div className="p-4 h-full flex flex-col">
             <SheetHeader className="p-0 mb-6">
               <SheetTitle className="text-xl font-semibold">Menu</SheetTitle>
@@ -186,7 +199,9 @@ export function Header() {
               <div className="border-t border-gray-200 pt-4">
                 <div className="flex items-center space-x-3 mb-4 px-2">
                   <IoPersonCircle className="text-2xl text-gray-700" />
-                  <span className="font-medium text-gray-800">{user?.name || "Usuário"}</span>
+                  <span className="font-medium text-gray-800">
+                    {user?.name || "Usuário"}
+                  </span>
                 </div>
 
                 <Link
@@ -197,7 +212,10 @@ export function Header() {
                   <span>Perfil</span>
                 </Link>
 
-                <Link href="/config" className="flex items-center w-full py-1 px-2">
+                <Link
+                  href="/config"
+                  className="flex items-center w-full py-1 px-2"
+                >
                   <HiCog className="mr-2 text-gray-700" size={18} />
                   <span className="text-gray-800">Configurações</span>
                 </Link>
