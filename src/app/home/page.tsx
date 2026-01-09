@@ -465,17 +465,15 @@ const Home = () => {
           </div>
         </section>
 
-        {/* resto do seu JSX permanece igual... */}
-        {/* NOTE: seus Link href={card.link} já são rotas internas, você pode deixar como está,
-           ou padronizar usando paths.page("page1") se quiser. */}
-
         {/* Section 2 */}
-        <section className="mb-10  md:mb-16 px-4 sm:px-5 text-center">
+        <section className="mb-10 md:mb-16 px-4 sm:px-5 text-center">
           <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 mt-4 sm:mb-5">
             Escolha por marca
           </h1>
-          <div className="flex justify-center xl:pr-48">
-            <div className="grid grid-cols-3 p-2 sm:gap-5 max-sm:gap-2 w-full max-w-[700px] relative">
+
+          {/* FIX: reestruturação para manter JSX balanceado */}
+          <div className="relative flex justify-center">
+            <div className="grid grid-cols-3 p-2 sm:gap-5 max-sm:gap-2 w-full max-w-[700px]">
               {cardSection2Data.map((card, index) => (
                 <Link
                   href={card.link}
@@ -492,12 +490,203 @@ const Home = () => {
                   </div>
                 </Link>
               ))}
-              {/* ... */}
+            </div>
+
+            {/* Anúncio lateral (desktop) */}
+            <div
+              className="hidden min-[1230px]:flex ml-6
+                         w-[120px] sm:w-[150px] md:w-[180px] lg:w-[220px]
+                         h-[250px] sm:h-[280px] md:h-[330px] lg:h-[360px]
+                         bg-gray-100 rounded-md shadow-md items-center justify-center"
+            >
+              <h5 className="text-base sm:text-lg font-bold">Anúncio</h5>
+            </div>
+          </div>
+
+          {/* Anúncio (mobile/tablet) */}
+          <div className="min-[1230px]:hidden w-auto h-[120px] mt-6 bg-gray-100 rounded-md shadow-md flex items-center justify-center">
+            <h5 className="text-base font-bold">Anúncio</h5>
+          </div>
+        </section>
+
+        {/* Section 3 - Destaque da semana */}
+        <section className="mb-10 md:mb-16 text-center px-4">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-5">
+            Destaque da semana
+          </h1>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-5">
+            {[1, 2].map((_, i) => (
+              <div
+                key={i}
+                className="bg-white rounded-md shadow-md w-full max-w-[450px] h-[350px] sm:h-[400px] p-3 sm:p-4 flex flex-col"
+              >
+                <div className="relative w-full h-[150px] sm:h-[200px]">
+                  <Image
+                    src="/img/highlight.png"
+                    alt="Produto destaque"
+                    fill
+                    className="object-contain p-3 sm:p-4"
+                  />
+                </div>
+                <div className="flex justify-between items-center mt-3 sm:mt-4">
+                  <h5 className="text-lg sm:text-xl font-bold">
+                    Garmin Edge 530
+                  </h5>
+                  <span className="text-xl sm:text-2xl font-bold text-[#09bc8a]">
+                    R$ 1.299
+                  </span>
+                </div>
+                <a
+                  href="#"
+                  className="mt-3 sm:mt-4 bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white py-2 px-4 rounded font-bold text-center hover:opacity-90 text-sm sm:text-base"
+                >
+                  Adicionar ao carrinho
+                </a>
+              </div>
+            ))}
+          </div>
+          <div className="bg-gray-100 h-[150px] sm:h-[220px] w-full max-w-[920px] mx-auto mt-8 sm:mt-10 mb-8 sm:mb-10 rounded-md shadow-md flex items-center justify-center">
+            <h5 className="text-base sm:text-lg font-bold">Anúncio</h5>
+          </div>
+        </section>
+
+        {/* Section 4 - Estilos */}
+        <section className="bg-[#09bc8a] py-10 sm:py-16 px-4">
+          <div className="text-center">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-6 sm:mb-10">
+              QUAL O SEU <span className="font-black">ESTILO?</span>
+            </h1>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 justify-center max-w-5xl mx-auto">
+              {cardSection4Data.map((card, index) => (
+                <Link
+                  href={card.link}
+                  key={index}
+                  className="w-full sm:w-[200px] md:w-[220px] h-[250px] sm:h-[280px] mx-auto"
+                >
+                  <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 flex flex-col h-full">
+                    <div className="relative flex-1">
+                      <Image
+                        src={card.image}
+                        alt={card.title}
+                        fill
+                        className="object-contain p-3 sm:p-4"
+                      />
+                    </div>
+                    <h5 className="font-bold text-[#09bc8a] mt-2 text-center truncate text-sm sm:text-base">
+                      {card.title}
+                    </h5>
+                    <button className="mt-2 sm:mt-3 bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white py-2 rounded font-bold flex items-center justify-center gap-1 sm:gap-2 hover:opacity-90 text-sm sm:text-base">
+                      Confira <FaArrowRightToBracket />
+                    </button>
+                  </div>
+                </Link>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* ... mantém o resto igual */}
+        {/* Section 5 - Selecionados para você */}
+        <section className="my-10 sm:my-16 text-center px-4">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-5">
+            Olha o que selecionamos pra você
+          </h1>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 justify-center max-w-4xl mx-auto">
+            {[1, 2, 3, 4].map((_, i) => (
+              <div
+                key={i}
+                className="bg-white rounded-md shadow-md w-full max-w-[350px] h-[330px] sm:h-[380px] p-3 sm:p-4 flex flex-col mx-auto"
+              >
+                <div className="relative w-full h-[140px] sm:h-[180px]">
+                  <Image
+                    src="/img/highlight.png"
+                    alt={`Produto ${i + 1}`}
+                    fill
+                    className="object-contain p-3 sm:p-4"
+                  />
+                </div>
+                <div className="flex justify-between items-center mt-3 sm:mt-4">
+                  <h5 className="text-lg sm:text-xl font-bold">
+                    Produto {i + 1}
+                  </h5>
+                  <span className="text-xl sm:text-2xl font-bold text-[#09bc8a]">
+                    R$ 999
+                  </span>
+                </div>
+                <a
+                  href="#"
+                  className="mt-3 sm:mt-4 bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white py-2 px-4 rounded font-bold text-center hover:opacity-90 text-sm sm:text-base"
+                >
+                  Adicionar ao carrinho
+                </a>
+              </div>
+            ))}
+          </div>
+          <div className="bg-gray-100 h-[150px] sm:h-[220px] w-full max-w-[920px] mx-auto mt-8 sm:mt-10 mb-8 sm:mb-10 rounded-md shadow-md flex items-center justify-center">
+            <h5 className="text-base sm:text-lg font-bold">Anúncio</h5>
+          </div>
+        </section>
+
+        {/* Section 6 - Mais procurados */}
+        <section className="bg-[#ebf1f0] py-10 sm:py-16 px-4">
+          <div className="text-center">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-5">
+              Mais Procurados
+            </h1>
+            <div className="flex justify-center">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 w-full max-w-[1400px]">
+                {[1, 2, 3, 4].map((_, i) => (
+                  <div
+                    key={i}
+                    className="bg-white rounded-md shadow-md w-full max-w-[350px] h-[330px] sm:h-[380px] p-3 sm:p-4 flex flex-col mx-auto"
+                  >
+                    <div className="relative w-full h-[140px] sm:h-[180px]">
+                      <Image
+                        src="/img/highlight.png"
+                        alt={`Produto ${i + 1}`}
+                        fill
+                        className="object-contain p-3 sm:p-4"
+                      />
+                    </div>
+                    <div className="flex justify-between items-center mt-3 sm:mt-4">
+                      <h5 className="text-lg sm:text-xl font-bold">
+                        Produto {i + 1}
+                      </h5>
+                      <span className="text-xl sm:text-2xl font-bold text-[#09bc8a]">
+                        R$ 999
+                      </span>
+                    </div>
+                    <a
+                      href="#"
+                      className="mt-3 sm:mt-4 bg-gradient-to-r from-[#09bc8a] to-[#0c1b33] text-white py-2 px-4 rounded font-bold text-center hover:opacity-90 text-sm sm:text-base"
+                    >
+                      Adicionar ao carrinho
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Section 7 - Instagram */}
+        <section className="py-10 sm:py-16 text-center px-4">
+          <h2 className="text-lg sm:text-xl font-bold text-[#0C1B33] mb-6 sm:mb-8">
+            Confira nosso Instagram
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 max-w-4xl mx-auto mb-6 sm:mb-8">
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="bg-[#09BC8A] aspect-square rounded-lg"
+              ></div>
+            ))}
+          </div>
+          <a href="https://www.instagram.com/bikescombr/">
+            <button className="bg-gradient-to-r from-[#09BC8A] to-[#0C1B33] text-white py-2 px-4 sm:px-6 rounded font-bold flex items-center justify-center gap-2 mx-auto hover:opacity-90 text-sm sm:text-base">
+              📷 Siga-nos agora
+            </button>
+          </a>
+        </section>
       </main>
 
       <Footer />
